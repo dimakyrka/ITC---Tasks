@@ -163,7 +163,6 @@
             color: var(--warning);
         }
 
-        /* Модальные окна */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -269,7 +268,6 @@
             transform: scale(1.1);
         }
 
-        /* Уведомления */
         .notification-popup {
             position: fixed;
             bottom: 20px;
@@ -311,7 +309,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно редактирования -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header">
@@ -332,9 +329,6 @@
                         <div class="color-option" style="background: #FF3B30;" onclick="selectColor(this, '#FF3B30')"></div>
                         <div class="color-option" style="background: #AF52DE;" onclick="selectColor(this, '#AF52DE')"></div>
                         <div class="color-option" style="background: #FFCC00;" onclick="selectColor(this, '#FFCC00')"></div>
-                        <div class="color-option" style="background: #5AC8FA;" onclick="selectColor(this, '#5AC8FA')"></div>
-                        <div class="color-option" style="background: #5856D6;" onclick="selectColor(this, '#5856D6')"></div>
-                        <div class="color-option" style="background: #A2845E;" onclick="selectColor(this, '#A2845E')"></div>
                     </div>
                     <input type="hidden" id="selectedColor" value="">
                 </div>
@@ -346,7 +340,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно напоминания -->
     <div class="modal-overlay" id="reminderModal">
         <div class="modal">
             <div class="modal-header">
@@ -366,7 +359,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно подтверждения удаления -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <div class="modal-header">
@@ -388,12 +380,10 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Drag and Drop
         let draggedItem = null;
         let currentEditIndex = null;
         let taskToDeleteIndex = null;
         
-        // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
         let tasks = [];
         
@@ -407,7 +397,6 @@
             console.error('Ошибка загрузки задач:', e);
         }
         
-        // Элементы
         const taskInput = document.getElementById('taskInput');
         const addBtn = document.getElementById('addBtn');
         const taskList = document.getElementById('taskList');
@@ -420,20 +409,15 @@
         const deleteTaskText = document.getElementById('deleteTaskText');
         const selectedColor = document.getElementById('selectedColor');
         
-        // Установка минимальной даты для напоминания (текущая дата)
         reminderDateTime.min = new Date().toISOString().slice(0, 16);
         
-        // Инициализация MainButton
         tg.MainButton.setParams({
             text: 'СОХРАНИТЬ ИЗМЕНЕНИЯ',
-            color: '#007AFF',
-            is_active: true,
-            is_visible: true
+            color: '#007AFF'
         }).show();
         
         tg.MainButton.onClick(saveTasks);
         
-        // Функции
         function renderTasks() {
             if (tasks.length === 0) {
                 emptyState.style.display = 'block';
@@ -451,7 +435,6 @@
                 taskEl.draggable = true;
                 taskEl.dataset.index = index;
                 
-                // Добавляем цветной индикатор
                 if (task.color) {
                     const colorIndicator = document.createElement('div');
                     colorIndicator.className = 'task-color-indicator';
@@ -459,21 +442,20 @@
                     taskEl.appendChild(colorIndicator);
                 }
                 
-                // Проверяем наличие и валидность даты напоминания
-                const hasValidReminder = task.dueDate && !isNaN(new Date(task.dueDate).getTime());
+                const hasReminder = task.dueDate && !isNaN(new Date(task.dueDate).getTime());
                 
                 taskEl.innerHTML = `
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
                         <div class="task-text">${task.text}</div>
-                        ${hasValidReminder ? `
+                        ${hasReminder ? `
                         <div class="task-time">
                             <i class="far fa-clock"></i>
                             ${formatDateTime(task.dueDate)}
                         </div>` : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="action-btn ${hasValidReminder ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
+                        <button class="action-btn ${hasReminder ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
                             <i class="far fa-bell"></i>
                         </button>
                         <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
@@ -523,7 +505,6 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                // Добавляем задачу в начало массива
                 tasks.unshift({
                     id: Date.now().toString(),
                     text: text,
@@ -533,6 +514,7 @@
                 taskInput.value = '';
                 renderTasks();
                 showNotification(`Задача добавлена: ${text}`);
+                saveTasksSilently();
             }
         }
         
@@ -545,23 +527,17 @@
         }
         
         function selectColor(element, color) {
-            // Убираем выделение у всех цветов
             document.querySelectorAll('.color-option').forEach(el => {
                 el.classList.remove('selected');
             });
-            
-            // Выделяем выбранный цвет
             element.classList.add('selected');
             selectedColor.value = color;
         }
         
         function updateColorSelection() {
-            // Снимаем все выделения
             document.querySelectorAll('.color-option').forEach(el => {
                 el.classList.remove('selected');
             });
-            
-            // Находим и выделяем текущий цвет
             if (selectedColor.value) {
                 const colorOptions = document.querySelectorAll('.color-option');
                 for (let i = 0; i < colorOptions.length; i++) {
@@ -590,19 +566,9 @@
         function openReminderModal(index) {
             currentEditIndex = index;
             if (tasks[index].dueDate) {
-                const dueDate = new Date(tasks[index].dueDate);
-                if (!isNaN(dueDate.getTime())) {
-                    // Форматируем дату для input[type=datetime-local]
-                    const year = dueDate.getFullYear();
-                    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(dueDate.getDate()).padStart(2, '0');
-                    const hours = String(dueDate.getHours()).padStart(2, '0');
-                    const minutes = String(dueDate.getMinutes()).padStart(2, '0');
-                    
-                    reminderDateTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-                } else {
-                    reminderDateTime.value = '';
-                }
+                const dt = new Date(tasks[index].dueDate);
+                const formatted = dt.toISOString().slice(0, 16);
+                reminderDateTime.value = formatted;
             } else {
                 reminderDateTime.value = '';
             }
@@ -612,24 +578,20 @@
         function saveReminder() {
             if (currentEditIndex !== null && reminderDateTime.value) {
                 const dueDate = new Date(reminderDateTime.value).toISOString();
-                if (!isNaN(new Date(dueDate).getTime())) {
-                    tasks[currentEditIndex].dueDate = dueDate;
-                    
-                    tg.sendData(JSON.stringify({
-                        notification: {
-                            task_id: tasks[currentEditIndex].id,
-                            due_date: dueDate
-                        },
-                        action: "save"
-                    }));
-                    
-                    showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
-                    renderTasks();
-                    closeModal('reminderModal');
-                    saveTasksSilently();
-                } else {
-                    showNotification('Некорректная дата');
-                }
+                tasks[currentEditIndex].dueDate = dueDate;
+                
+                tg.sendData(JSON.stringify({
+                    notification: {
+                        task_id: tasks[currentEditIndex].id,
+                        due_date: dueDate
+                    },
+                    action: "save"
+                }));
+                
+                showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
+                renderTasks();
+                closeModal('reminderModal');
+                saveTasksSilently();
             }
         }
         
@@ -692,13 +654,11 @@
             }, 3000);
         }
         
-        // Обработчики событий
         addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
-        // Обработчик сообщений от бота
         tg.onEvent('webAppDataReceived', (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -711,13 +671,7 @@
             }
         });
         
-        // Инициализация
         renderTasks();
-        
-        // Автоматическое сохранение при закрытии
-        window.addEventListener('beforeunload', () => {
-            saveTasksSilently();
-        });
     </script>
 </body>
 </html>
