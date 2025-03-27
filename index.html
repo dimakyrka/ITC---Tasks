@@ -6,22 +6,167 @@
     <title>Task Manager</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Ваши стили остаются без изменений */
+        :root {
+            --primary-color: #007aff;
+            --danger-color: #ff3b30;
+            --bg-color: #f2f2f7;
+            --card-color: #ffffff;
+            --text-color: #1c1c1e;
+            --border-color: #d1d1d6;
+            --placeholder-color: #8e8e93;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 16px;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        .container {
+            background-color: var(--card-color);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+            color: var(--text-color);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            background-color: var(--card-color);
+            color: var(--text-color);
+            transition: border-color 0.2s;
+        }
+
+        #taskInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        #taskInput::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        #addButton {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0 20px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #addButton:hover {
+            background-color: #0062cc;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background-color: var(--bg-color);
+            border-radius: 10px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .task-text {
+            flex: 1;
+            word-break: break-word;
+            padding-right: 10px;
+        }
+
+        .delete-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .delete-btn:hover {
+            background-color: #d70015;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--placeholder-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1c1c1e;
+                --card-color: #2c2c2e;
+                --text-color: #ffffff;
+                --border-color: #3a3a3c;
+                --placeholder-color: #8e8e93;
+            }
+            
+            #taskInput {
+                background-color: var(--card-color);
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Мои задачи</h1>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
+            <input type="text" id="taskInput" placeholder="Добавьте новую задачу..." autofocus>
             <button id="addButton">Добавить</button>
         </div>
-        <div id="tasksList"></div>
+        <div class="task-list" id="tasksList">
+            <div class="empty-state" id="emptyState">Нет задач. Добавьте первую!</div>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
         
         // Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -38,23 +183,22 @@
             console.error('Ошибка загрузки задач:', e);
         }
         
-        // Инициализация интерфейса
+        // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
         const tasksList = document.getElementById('tasksList');
+        const emptyState = document.getElementById('emptyState');
         
-        tg.MainButton.setText('СОХРАНИТЬ').show();
+        // Настройка кнопки сохранения
+        tg.MainButton.setParams({
+            text: 'СОХРАНИТЬ ИЗМЕНЕНИЯ',
+            color: '#007aff',
+            text_color: '#ffffff'
+        }).show();
+        
         tg.MainButton.onClick(saveTasks);
         
-        function renderTasks() {
-            tasksList.innerHTML = tasks.map((task, index) => `
-                <div class="task">
-                    <div>${task}</div>
-                    <button class="delete-btn" onclick="deleteTask(${index})">×</button>
-                </div>
-            `).join('');
-        }
-        
+        // Добавление задачи
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
@@ -65,24 +209,44 @@
             }
         }
         
+        // Удаление задачи
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
         }
         
+        // Отрисовка задач
+        function renderTasks() {
+            if (tasks.length === 0) {
+                emptyState.style.display = 'block';
+                tasksList.innerHTML = '';
+                tasksList.appendChild(emptyState);
+            } else {
+                emptyState.style.display = 'none';
+                tasksList.innerHTML = tasks.map((task, index) => `
+                    <div class="task">
+                        <div class="task-text">${task}</div>
+                        <button class="delete-btn" onclick="deleteTask(${index})">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Сохранение задач
         function saveTasks() {
             tg.sendData(JSON.stringify({
                 user_id: userId,
                 tasks: tasks
             }));
-            tg.close();
         }
         
+        // Обработчики событий
         addButton.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
+        // Первоначальная отрисовка
         renderTasks();
     </script>
 </body>
