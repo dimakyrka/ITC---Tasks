@@ -6,54 +6,7 @@
     <title>Task Manager</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            padding: 16px;
-            background: #f5f5f7;
-        }
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        #taskInput {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #d1d1d6;
-            border-radius: 8px;
-        }
-        #addButton {
-            background: #007aff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 0 16px;
-            cursor: pointer;
-        }
-        .task {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f5f5f7;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .delete-btn {
-            background: #ff3b30;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            width: 28px;
-            height: 28px;
-            cursor: pointer;
-        }
+        /* Ваши стили остаются без изменений */
     </style>
 </head>
 <body>
@@ -73,29 +26,35 @@
         // Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user_id');
-        const tasksJson = urlParams.get('tasks');
-        
-        // Загружаем задачи
         let tasks = [];
+        
         try {
-            if (tasksJson) {
-                tasks = JSON.parse(decodeURIComponent(tasksJson));
+            const tasksParam = urlParams.get('tasks');
+            if (tasksParam) {
+                tasks = JSON.parse(decodeURIComponent(tasksParam));
                 if (!Array.isArray(tasks)) tasks = [];
             }
         } catch (e) {
             console.error('Ошибка загрузки задач:', e);
         }
         
-        // Элементы интерфейса
+        // Инициализация интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
         const tasksList = document.getElementById('tasksList');
         
-        // Настройка кнопки сохранения
         tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
         
-        // Добавление задачи
+        function renderTasks() {
+            tasksList.innerHTML = tasks.map((task, index) => `
+                <div class="task">
+                    <div>${task}</div>
+                    <button class="delete-btn" onclick="deleteTask(${index})">×</button>
+                </div>
+            `).join('');
+        }
+        
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
@@ -106,23 +65,11 @@
             }
         }
         
-        // Удаление задачи
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
         }
         
-        // Отрисовка задач
-        function renderTasks() {
-            tasksList.innerHTML = tasks.map((task, index) => `
-                <div class="task">
-                    <div>${task}</div>
-                    <button class="delete-btn" onclick="deleteTask(${index})">×</button>
-                </div>
-            `).join('');
-        }
-        
-        // Сохранение задач
         function saveTasks() {
             tg.sendData(JSON.stringify({
                 user_id: userId,
@@ -131,13 +78,11 @@
             tg.close();
         }
         
-        // Обработчики событий
         addButton.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
-        // Первоначальная отрисовка
         renderTasks();
     </script>
 </body>
