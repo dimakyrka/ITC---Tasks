@@ -88,22 +88,12 @@
 
         .task {
             display: flex;
-            align-items: flex-start;
+            align-items: flex-start; /* Изменено для правильного переноса текста */
             padding: 12px;
             background: var(--bg);
             border-radius: 10px;
             cursor: grab;
             transition: transform 0.2s;
-            position: relative;
-        }
-
-        .task-color-indicator {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            border-radius: 4px 0 0 4px;
         }
 
         .task:active {
@@ -114,15 +104,14 @@
         .task-content {
             flex: 1;
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Текст в колонку */
             gap: 6px;
             overflow: hidden;
-            word-break: break-word;
-            margin-left: 8px;
+            word-break: break-word; /* Перенос длинных слов */
         }
 
         .task-text {
-            white-space: pre-wrap;
+            white-space: pre-wrap; /* Сохраняем переносы строк */
         }
 
         .task-time {
@@ -158,11 +147,7 @@
             background: rgba(0,0,0,0.05);
         }
 
-        .action-btn.active {
-            opacity: 1;
-            color: var(--warning);
-        }
-
+        /* Модальные окна */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -247,27 +232,7 @@
             font-size: 16px;
         }
 
-        .color-picker {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            flex-wrap: wrap;
-        }
-
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: transform 0.2s;
-        }
-
-        .color-option.selected {
-            border-color: var(--text);
-            transform: scale(1.1);
-        }
-
+        /* Уведомления */
         .notification-popup {
             position: fixed;
             bottom: 20px;
@@ -281,7 +246,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            z-index: 999;
         }
 
         @keyframes slideUp {
@@ -292,7 +256,7 @@
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-tasks"></i> Менеджер задач</h1>
+        <h1><i class="fas fa-tasks"></i> Общие задачи</h1>
         
         <div class="task-input">
             <input type="text" id="taskInput" placeholder="Добавить задачу..." autofocus>
@@ -309,6 +273,7 @@
         </div>
     </div>
 
+    <!-- Модальное окно редактирования -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header">
@@ -320,18 +285,6 @@
                     <label class="form-label">Текст задачи</label>
                     <input type="text" class="form-input" id="editTaskInput">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Цвет задачи</label>
-                    <div class="color-picker">
-                        <div class="color-option" style="background: #007AFF;" onclick="selectColor(this, '#007AFF')"></div>
-                        <div class="color-option" style="background: #34C759;" onclick="selectColor(this, '#34C759')"></div>
-                        <div class="color-option" style="background: #FF9500;" onclick="selectColor(this, '#FF9500')"></div>
-                        <div class="color-option" style="background: #FF3B30;" onclick="selectColor(this, '#FF3B30')"></div>
-                        <div class="color-option" style="background: #AF52DE;" onclick="selectColor(this, '#AF52DE')"></div>
-                        <div class="color-option" style="background: #FFCC00;" onclick="selectColor(this, '#FFCC00')"></div>
-                    </div>
-                    <input type="hidden" id="selectedColor" value="">
-                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn" onclick="closeModal('editModal')">Отмена</button>
@@ -340,6 +293,7 @@
         </div>
     </div>
 
+    <!-- Модальное окно напоминания -->
     <div class="modal-overlay" id="reminderModal">
         <div class="modal">
             <div class="modal-header">
@@ -354,11 +308,12 @@
             </div>
             <div class="modal-footer">
                 <button class="btn" onclick="closeModal('reminderModal')">Отмена</button>
-                <button class="btn btn-primary" onclick="saveReminder()">Сохранить</button>
+                <button class="btn btn-primary" onclick="saveReminder()">Установить</button>
             </div>
         </div>
     </div>
 
+    <!-- Модальное окно подтверждения удаления -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <div class="modal-header">
@@ -380,10 +335,12 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
+        // Drag and Drop
         let draggedItem = null;
         let currentEditIndex = null;
         let taskToDeleteIndex = null;
         
+        // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
         let tasks = [];
         
@@ -397,6 +354,7 @@
             console.error('Ошибка загрузки задач:', e);
         }
         
+        // Элементы
         const taskInput = document.getElementById('taskInput');
         const addBtn = document.getElementById('addBtn');
         const taskList = document.getElementById('taskList');
@@ -407,17 +365,22 @@
         const reminderDateTime = document.getElementById('reminderDateTime');
         const deleteModal = document.getElementById('deleteModal');
         const deleteTaskText = document.getElementById('deleteTaskText');
-        const selectedColor = document.getElementById('selectedColor');
         
+        // Установка минимальной даты для напоминания (текущая дата)
         reminderDateTime.min = new Date().toISOString().slice(0, 16);
         
+        // Инициализация
         tg.MainButton.setParams({
-            text: 'СОХРАНИТЬ ИЗМЕНЕНИЯ',
+            text: 'СОХРАНИТЬ',
             color: '#007AFF'
         }).show();
         
         tg.MainButton.onClick(saveTasks);
         
+        // Автоматическое обновление данных каждые 30 секунд
+        setInterval(updateTasksFromBot, 30000);
+        
+        // Функции
         function renderTasks() {
             if (tasks.length === 0) {
                 emptyState.style.display = 'block';
@@ -435,27 +398,18 @@
                 taskEl.draggable = true;
                 taskEl.dataset.index = index;
                 
-                if (task.color) {
-                    const colorIndicator = document.createElement('div');
-                    colorIndicator.className = 'task-color-indicator';
-                    colorIndicator.style.background = task.color;
-                    taskEl.appendChild(colorIndicator);
-                }
-                
-                const hasReminder = task.dueDate && !isNaN(new Date(task.dueDate).getTime());
-                
                 taskEl.innerHTML = `
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
                         <div class="task-text">${task.text}</div>
-                        ${hasReminder ? `
+                        ${task.dueDate ? `
                         <div class="task-time">
                             <i class="far fa-clock"></i>
                             ${formatDateTime(task.dueDate)}
                         </div>` : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="action-btn ${hasReminder ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
+                        <button class="action-btn" onclick="openReminderModal(${index})" title="Напоминание">
                             <i class="far fa-bell"></i>
                         </button>
                         <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
@@ -505,48 +459,22 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
+                // Добавляем задачу в начало массива
                 tasks.unshift({
                     id: Date.now().toString(),
                     text: text,
-                    createdAt: new Date().toISOString(),
-                    color: ''
+                    createdAt: new Date().toISOString()
                 });
                 taskInput.value = '';
                 renderTasks();
                 showNotification(`Задача добавлена: ${text}`);
-                saveTasksSilently();
             }
         }
         
         function openEditModal(index) {
             currentEditIndex = index;
             editTaskInput.value = tasks[index].text;
-            selectedColor.value = tasks[index].color || '#007AFF';
-            updateColorSelection();
             openModal('editModal');
-        }
-        
-        function selectColor(element, color) {
-            document.querySelectorAll('.color-option').forEach(el => {
-                el.classList.remove('selected');
-            });
-            element.classList.add('selected');
-            selectedColor.value = color;
-        }
-        
-        function updateColorSelection() {
-            document.querySelectorAll('.color-option').forEach(el => {
-                el.classList.remove('selected');
-            });
-            if (selectedColor.value) {
-                const colorOptions = document.querySelectorAll('.color-option');
-                for (let i = 0; i < colorOptions.length; i++) {
-                    if (colorOptions[i].style.background === selectedColor.value) {
-                        colorOptions[i].classList.add('selected');
-                        break;
-                    }
-                }
-            }
         }
         
         function saveEditedTask() {
@@ -554,21 +482,17 @@
                 const newText = editTaskInput.value.trim();
                 if (newText) {
                     tasks[currentEditIndex].text = newText;
-                    tasks[currentEditIndex].color = selectedColor.value;
                     renderTasks();
                     showNotification('Задача обновлена');
-                    closeModal('editModal');
-                    saveTasksSilently();
                 }
             }
+            closeModal('editModal');
         }
         
         function openReminderModal(index) {
             currentEditIndex = index;
             if (tasks[index].dueDate) {
-                const dt = new Date(tasks[index].dueDate);
-                const formatted = dt.toISOString().slice(0, 16);
-                reminderDateTime.value = formatted;
+                reminderDateTime.value = tasks[index].dueDate.slice(0, 16);
             } else {
                 reminderDateTime.value = '';
             }
@@ -584,15 +508,13 @@
                     notification: {
                         task_id: tasks[currentEditIndex].id,
                         due_date: dueDate
-                    },
-                    action: "save"
+                    }
                 }));
                 
                 showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
                 renderTasks();
-                closeModal('reminderModal');
-                saveTasksSilently();
             }
+            closeModal('reminderModal');
         }
         
         function openDeleteModal(index) {
@@ -607,31 +529,19 @@
                 renderTasks();
                 showNotification('Задача удалена');
                 taskToDeleteIndex = null;
-                closeModal('deleteModal');
-                saveTasksSilently();
             }
+            closeModal('deleteModal');
         }
         
         function moveTask(fromIndex, toIndex) {
             const item = tasks.splice(fromIndex, 1)[0];
             tasks.splice(toIndex, 0, item);
             renderTasks();
-            saveTasksSilently();
         }
         
         function saveTasks() {
-            tg.sendData(JSON.stringify({ 
-                tasks: tasks,
-                action: "save"
-            }));
-            showNotification('Изменения сохранены');
-        }
-        
-        function saveTasksSilently() {
-            tg.sendData(JSON.stringify({ 
-                tasks: tasks,
-                action: "autosave"
-            }));
+            tg.sendData(JSON.stringify({ tasks: tasks }));
+            tg.close();
         }
         
         function openModal(modalId) {
@@ -654,24 +564,41 @@
             }, 3000);
         }
         
+        // Автоматическое обновление задач от бота
+        function updateTasksFromBot() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.query_id) {
+                // Запрашиваем свежие данные у бота
+                tg.sendData(JSON.stringify({ action: "update" }));
+            }
+        }
+        
+        // Обработчики событий
         addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
+        // Обработчик сообщений от бота (если нужно)
         tg.onEvent('webAppDataReceived', (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.tasks) {
                     tasks = data.tasks;
                     renderTasks();
+                    showNotification('Список задач обновлён');
                 }
             } catch (e) {
                 console.error('Ошибка обработки данных:', e);
             }
         });
         
+        // Инициализация
         renderTasks();
+        
+        // Автоматическое сохранение при закрытии
+        window.addEventListener('beforeunload', () => {
+            tg.sendData(JSON.stringify({ tasks: tasks }));
+        });
     </script>
 </body>
 </html>
