@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Общий список задач</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -105,6 +105,12 @@
             padding-right: 10px;
         }
 
+        .task-meta {
+            font-size: 12px;
+            color: var(--placeholder-color);
+            margin-top: 4px;
+        }
+
         .delete-btn {
             background-color: var(--danger-color);
             color: white;
@@ -153,7 +159,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Мои задачи</h1>
+        <h1>Общий список задач</h1>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="Добавьте новую задачу..." autofocus>
             <button id="addButton">Добавить</button>
@@ -168,9 +174,8 @@
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // Получаем параметры из URL
+        // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
         let tasks = [];
         
         try {
@@ -202,7 +207,12 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                tasks.push(text);
+                const timestamp = new Date().toLocaleString();
+                tasks.push({
+                    text: text,
+                    added: timestamp,
+                    user: tg.initDataUnsafe.user?.username || 'Аноним'
+                });
                 taskInput.value = '';
                 renderTasks();
                 taskInput.focus();
@@ -225,7 +235,12 @@
                 emptyState.style.display = 'none';
                 tasksList.innerHTML = tasks.map((task, index) => `
                     <div class="task">
-                        <div class="task-text">${task}</div>
+                        <div>
+                            <div class="task-text">${task.text}</div>
+                            <div class="task-meta">
+                                Добавлено: ${task.added} ${task.user ? 'пользователем @' + task.user : ''}
+                            </div>
+                        </div>
                         <button class="delete-btn" onclick="deleteTask(${index})">×</button>
                     </div>
                 `).join('');
@@ -235,7 +250,6 @@
         // Сохранение задач
         function saveTasks() {
             tg.sendData(JSON.stringify({
-                user_id: userId,
                 tasks: tasks
             }));
         }
