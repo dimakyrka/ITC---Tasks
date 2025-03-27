@@ -8,6 +8,7 @@
     <style>
         :root {
             --primary-color: #007aff;
+            --edit-color: #34c759;
             --danger-color: #ff3b30;
             --bg-color: #f2f2f7;
             --card-color: #ffffff;
@@ -17,12 +18,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
             padding: 16px;
             color: var(--text-color);
-            line-height: 1.5;
         }
 
         .container {
@@ -36,9 +36,7 @@
 
         h1 {
             font-size: 22px;
-            font-weight: 600;
             margin: 0 0 20px 0;
-            color: var(--text-color);
         }
 
         .input-group {
@@ -53,18 +51,11 @@
             border: 1px solid var(--border-color);
             border-radius: 10px;
             font-size: 16px;
-            background-color: var(--card-color);
-            color: var(--text-color);
-            transition: border-color 0.2s;
         }
 
         #taskInput:focus {
             outline: none;
             border-color: var(--primary-color);
-        }
-
-        #taskInput::placeholder {
-            color: var(--placeholder-color);
         }
 
         #addButton {
@@ -74,13 +65,7 @@
             border-radius: 10px;
             padding: 0 20px;
             font-size: 16px;
-            font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        #addButton:hover {
-            background-color: #0062cc;
         }
 
         .task-list {
@@ -91,44 +76,58 @@
 
         .task {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 14px;
+            padding: 12px;
             background-color: var(--bg-color);
             border-radius: 10px;
             animation: fadeIn 0.3s ease-out;
         }
 
+        .task-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
         .task-text {
             flex: 1;
             word-break: break-word;
-            padding-right: 10px;
+            padding: 0 10px;
         }
 
-        .task-meta {
-            font-size: 12px;
-            color: var(--placeholder-color);
-            margin-top: 4px;
+        .task-edit-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-right: 10px;
         }
 
-        .delete-btn {
-            background-color: var(--danger-color);
-            color: white;
+        .edit-btn, .save-btn, .delete-btn {
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             width: 32px;
             height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 18px;
-            font-weight: bold;
+            margin-left: 6px;
         }
 
-        .delete-btn:hover {
-            background-color: #d70015;
+        .edit-btn {
+            background-color: var(--edit-color);
+            color: white;
+        }
+
+        .save-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .delete-btn {
+            background-color: var(--danger-color);
+            color: white;
         }
 
         .empty-state {
@@ -141,27 +140,13 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #1c1c1e;
-                --card-color: #2c2c2e;
-                --text-color: #ffffff;
-                --border-color: #3a3a3c;
-                --placeholder-color: #8e8e93;
-            }
-            
-            #taskInput {
-                background-color: var(--card-color);
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Общий список задач</h1>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Добавьте новую задачу..." autofocus>
+            <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
         </div>
         <div class="task-list" id="tasksList">
@@ -172,7 +157,6 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.enableClosingConfirmation();
         
         // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -195,24 +179,14 @@
         const emptyState = document.getElementById('emptyState');
         
         // Настройка кнопки сохранения
-        tg.MainButton.setParams({
-            text: 'СОХРАНИТЬ ИЗМЕНЕНИЯ',
-            color: '#007aff',
-            text_color: '#ffffff'
-        }).show();
-        
+        tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
         
         // Добавление задачи
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                const timestamp = new Date().toLocaleString();
-                tasks.push({
-                    text: text,
-                    added: timestamp,
-                    user: tg.initDataUnsafe.user?.username || 'Аноним'
-                });
+                tasks.push(text);
                 taskInput.value = '';
                 renderTasks();
                 taskInput.focus();
@@ -225,6 +199,31 @@
             renderTasks();
         }
         
+        // Редактирование задачи
+        function editTask(index) {
+            const taskElement = document.querySelector(`.task[data-index="${index}"]`);
+            const currentText = tasks[index];
+            
+            taskElement.innerHTML = `
+                <div class="task-content">
+                    <input type="text" class="task-edit-input" value="${currentText}">
+                    <button class="save-btn" onclick="saveTask(${index})">✓</button>
+                </div>
+                <button class="delete-btn" onclick="deleteTask(${index})">×</button>
+            `;
+            
+            taskElement.querySelector('.task-edit-input').focus();
+        }
+        
+        // Сохранение отредактированной задачи
+        function saveTask(index) {
+            const newText = document.querySelector(`.task[data-index="${index}"] .task-edit-input`).value.trim();
+            if (newText) {
+                tasks[index] = newText;
+                renderTasks();
+            }
+        }
+        
         // Отрисовка задач
         function renderTasks() {
             if (tasks.length === 0) {
@@ -234,12 +233,10 @@
             } else {
                 emptyState.style.display = 'none';
                 tasksList.innerHTML = tasks.map((task, index) => `
-                    <div class="task">
-                        <div>
-                            <div class="task-text">${task.text}</div>
-                            <div class="task-meta">
-                                Добавлено: ${task.added} ${task.user ? 'пользователем @' + task.user : ''}
-                            </div>
+                    <div class="task" data-index="${index}">
+                        <div class="task-content">
+                            <div class="task-text">${task}</div>
+                            <button class="edit-btn" onclick="editTask(${index})">✎</button>
                         </div>
                         <button class="delete-btn" onclick="deleteTask(${index})">×</button>
                     </div>
@@ -249,9 +246,8 @@
         
         // Сохранение задач
         function saveTasks() {
-            tg.sendData(JSON.stringify({
-                tasks: tasks
-            }));
+            tg.sendData(JSON.stringify({ tasks: tasks }));
+            tg.close();
         }
         
         // Обработчики событий
