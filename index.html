@@ -70,35 +70,30 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Получаем user_id из URL
+        // Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user_id');
+        const tasksJson = urlParams.get('tasks');
+        
+        // Загружаем задачи
+        let tasks = [];
+        try {
+            if (tasksJson) {
+                tasks = JSON.parse(decodeURIComponent(tasksJson));
+                if (!Array.isArray(tasks)) tasks = [];
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки задач:', e);
+        }
         
         // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
         const tasksList = document.getElementById('tasksList');
         
-        // Загружаем задачи при запуске
-        let tasks = [];
-        loadTasks();
-        
         // Настройка кнопки сохранения
         tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
-        
-        // Загрузка задач с сервера
-        async function loadTasks() {
-            try {
-                const response = await fetch(`/get_tasks?user_id=${userId}`);
-                if (response.ok) {
-                    tasks = await response.json();
-                    renderTasks();
-                }
-            } catch (e) {
-                console.error('Ошибка загрузки задач:', e);
-            }
-        }
         
         // Добавление задачи
         function addTask() {
@@ -133,6 +128,7 @@
                 user_id: userId,
                 tasks: tasks
             }));
+            tg.close();
         }
         
         // Обработчики событий
@@ -140,6 +136,9 @@
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
+        
+        // Первоначальная отрисовка
+        renderTasks();
     </script>
 </body>
 </html>
