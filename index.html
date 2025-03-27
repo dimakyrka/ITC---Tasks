@@ -8,61 +8,116 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
+            padding: 15px;
             margin: 0;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #task-input {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        #newTask {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #2481cc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
         }
         .task {
-            padding: 10px;
+            padding: 10px 0;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+        .task button {
+            background: #ff4444;
+            padding: 3px 8px;
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <h2>Менеджер задач</h2>
-        <input type="text" id="newTask" placeholder="Новая задача">
-        <button onclick="addTask()">Добавить</button>
+    <div class="container">
+        <h2>Мои задачи</h2>
+        <div id="task-input">
+            <input type="text" id="newTask" placeholder="Новая задача...">
+            <button onclick="addTask()">+</button>
+        </div>
         <div id="tasksList"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.MainButton.setText('Сохранить и закрыть').show().onClick(saveAndClose);
+        tg.expand();
+        tg.MainButton.setText('Сохранить').show().onClick(saveAndClose);
 
-    // Загрузка параметров из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user_id');
-    
-    let tasks = [];
-
-    function saveAndClose() {
-        tg.sendData(JSON.stringify({
-            user_id: userId,
-            tasks: tasks,
-            timestamp: new Date().toISOString()
-        }));
-        tg.close();
-    }
+        // Получаем задачи из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        let tasks = [];
         
+        try {
+            const tasksJson = urlParams.get('tasks');
+            if (tasksJson) {
+                tasks = JSON.parse(decodeURIComponent(tasksJson));
+                if (!Array.isArray(tasks)) tasks = [];
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки задач:", e);
+        }
+
+        // Отображение задач
+        function renderTasks() {
+            const container = document.getElementById('tasksList');
+            container.innerHTML = tasks.map((task, index) => `
+                <div class="task">
+                    <span>${task}</span>
+                    <button onclick="deleteTask(${index})">×</button>
+                </div>
+            `).join('');
+        }
+
+        // Добавление задачи
         function addTask() {
             const input = document.getElementById('newTask');
-            if (input.value.trim()) {
-                tasks.push(input.value.trim());
+            const text = input.value.trim();
+            if (text) {
+                tasks.push(text);
                 input.value = '';
                 renderTasks();
             }
         }
-        
+
+        // Удаление задачи
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
         }
-        
-        // Первоначальная загрузка
+
+        // Сохранение и закрытие
+        function saveAndClose() {
+            tg.sendData(JSON.stringify({
+                user_id: urlParams.get('user_id'),
+                tasks: tasks,
+                timestamp: new Date().toISOString()
+            }));
+        }
+
+        // Первая отрисовка
         renderTasks();
     </script>
 </body>
