@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Task Manager Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -459,18 +459,21 @@
                     taskEl.appendChild(colorIndicator);
                 }
                 
+                // Проверяем наличие и валидность даты напоминания
+                const hasValidReminder = task.dueDate && !isNaN(new Date(task.dueDate).getTime());
+                
                 taskEl.innerHTML = `
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
                         <div class="task-text">${task.text}</div>
-                        ${task.dueDate ? `
+                        ${hasValidReminder ? `
                         <div class="task-time">
                             <i class="far fa-clock"></i>
                             ${formatDateTime(task.dueDate)}
                         </div>` : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="action-btn ${task.dueDate ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
+                        <button class="action-btn ${hasValidReminder ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
                             <i class="far fa-bell"></i>
                         </button>
                         <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
@@ -579,6 +582,7 @@
                     renderTasks();
                     showNotification('Задача обновлена');
                     closeModal('editModal');
+                    saveTasksSilently();
                 }
             }
         }
@@ -586,7 +590,19 @@
         function openReminderModal(index) {
             currentEditIndex = index;
             if (tasks[index].dueDate) {
-                reminderDateTime.value = tasks[index].dueDate.slice(0, 16);
+                const dueDate = new Date(tasks[index].dueDate);
+                if (!isNaN(dueDate.getTime())) {
+                    // Форматируем дату для input[type=datetime-local]
+                    const year = dueDate.getFullYear();
+                    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(dueDate.getDate()).padStart(2, '0');
+                    const hours = String(dueDate.getHours()).padStart(2, '0');
+                    const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+                    
+                    reminderDateTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                } else {
+                    reminderDateTime.value = '';
+                }
             } else {
                 reminderDateTime.value = '';
             }
@@ -596,18 +612,24 @@
         function saveReminder() {
             if (currentEditIndex !== null && reminderDateTime.value) {
                 const dueDate = new Date(reminderDateTime.value).toISOString();
-                tasks[currentEditIndex].dueDate = dueDate;
-                
-                tg.sendData(JSON.stringify({
-                    notification: {
-                        task_id: tasks[currentEditIndex].id,
-                        due_date: dueDate
-                    }
-                }));
-                
-                showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
-                renderTasks();
-                closeModal('reminderModal');
+                if (!isNaN(new Date(dueDate).getTime())) {
+                    tasks[currentEditIndex].dueDate = dueDate;
+                    
+                    tg.sendData(JSON.stringify({
+                        notification: {
+                            task_id: tasks[currentEditIndex].id,
+                            due_date: dueDate
+                        },
+                        action: "save"
+                    }));
+                    
+                    showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
+                    renderTasks();
+                    closeModal('reminderModal');
+                    saveTasksSilently();
+                } else {
+                    showNotification('Некорректная дата');
+                }
             }
         }
         
@@ -624,6 +646,7 @@
                 showNotification('Задача удалена');
                 taskToDeleteIndex = null;
                 closeModal('deleteModal');
+                saveTasksSilently();
             }
         }
         
@@ -631,6 +654,7 @@
             const item = tasks.splice(fromIndex, 1)[0];
             tasks.splice(toIndex, 0, item);
             renderTasks();
+            saveTasksSilently();
         }
         
         function saveTasks() {
@@ -638,8 +662,14 @@
                 tasks: tasks,
                 action: "save"
             }));
-            // Не закрываем приложение после сохранения
             showNotification('Изменения сохранены');
+        }
+        
+        function saveTasksSilently() {
+            tg.sendData(JSON.stringify({ 
+                tasks: tasks,
+                action: "autosave"
+            }));
         }
         
         function openModal(modalId) {
@@ -686,10 +716,7 @@
         
         // Автоматическое сохранение при закрытии
         window.addEventListener('beforeunload', () => {
-            tg.sendData(JSON.stringify({ 
-                tasks: tasks,
-                action: "autosave"
-            }));
+            saveTasksSilently();
         });
     </script>
 </body>
