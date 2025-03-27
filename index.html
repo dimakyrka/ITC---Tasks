@@ -128,6 +128,92 @@
             background: rgba(0,0,0,0.05);
         }
 
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        /* Уведомления */
         .notification-popup {
             position: fixed;
             bottom: 20px;
@@ -138,6 +224,9 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             animation: slideUp 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         @keyframes slideUp {
@@ -165,12 +254,53 @@
         </div>
     </div>
 
+    <!-- Модальное окно редактирования -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Редактировать задачу</div>
+                <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Текст задачи</label>
+                    <input type="text" class="form-input" id="editTaskInput">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('editModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="saveEditedTask()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно напоминания -->
+    <div class="modal-overlay" id="reminderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Установить напоминание</div>
+                <button class="modal-close" onclick="closeModal('reminderModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Дата и время</label>
+                    <input type="datetime-local" class="form-input" id="reminderDateTime">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('reminderModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="saveReminder()">Установить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         
         // Drag and Drop
         let draggedItem = null;
+        let currentEditIndex = null;
         
         // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -191,6 +321,13 @@
         const addBtn = document.getElementById('addBtn');
         const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
+        const editModal = document.getElementById('editModal');
+        const editTaskInput = document.getElementById('editTaskInput');
+        const reminderModal = document.getElementById('reminderModal');
+        const reminderDateTime = document.getElementById('reminderDateTime');
+        
+        // Установка минимальной даты для напоминания (текущая дата)
+        reminderDateTime.min = new Date().toISOString().slice(0, 16);
         
         // Инициализация
         tg.MainButton.setParams({
@@ -199,6 +336,9 @@
         }).show();
         
         tg.MainButton.onClick(saveTasks);
+        
+        // Автоматическое обновление данных каждые 30 секунд
+        setInterval(updateTasksFromBot, 30000);
         
         // Функции
         function renderTasks() {
@@ -222,13 +362,13 @@
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
                         <span>${task.text}</span>
-                        ${task.dueDate ? `<small><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</small>` : ''}
+                        ${task.dueDate ? `<small><i class="far fa-clock"></i> ${formatDateTime(task.dueDate)}</small>` : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="action-btn" onclick="setReminder(${index})" title="Напоминание">
+                        <button class="action-btn" onclick="openReminderModal(${index})" title="Напоминание">
                             <i class="far fa-bell"></i>
                         </button>
-                        <button class="action-btn" onclick="editTask(${index})" title="Редактировать">
+                        <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
                             <i class="far fa-edit"></i>
                         </button>
                         <button class="action-btn" onclick="deleteTask(${index})" title="Удалить">
@@ -261,6 +401,17 @@
             });
         }
         
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
@@ -275,18 +426,57 @@
             }
         }
         
-        function editTask(index) {
-            const newText = prompt("Редактировать задачу:", tasks[index].text);
-            if (newText !== null) {
-                tasks[index].text = newText.trim();
+        function openEditModal(index) {
+            currentEditIndex = index;
+            editTaskInput.value = tasks[index].text;
+            openModal('editModal');
+        }
+        
+        function saveEditedTask() {
+            if (currentEditIndex !== null) {
+                const newText = editTaskInput.value.trim();
+                if (newText) {
+                    tasks[currentEditIndex].text = newText;
+                    renderTasks();
+                    showNotification('Задача обновлена');
+                }
+            }
+            closeModal('editModal');
+        }
+        
+        function openReminderModal(index) {
+            currentEditIndex = index;
+            if (tasks[index].dueDate) {
+                reminderDateTime.value = tasks[index].dueDate.slice(0, 16);
+            } else {
+                reminderDateTime.value = '';
+            }
+            openModal('reminderModal');
+        }
+        
+        function saveReminder() {
+            if (currentEditIndex !== null && reminderDateTime.value) {
+                const dueDate = new Date(reminderDateTime.value).toISOString();
+                tasks[currentEditIndex].dueDate = dueDate;
+                
+                tg.sendData(JSON.stringify({
+                    notification: {
+                        task_id: tasks[currentEditIndex].id,
+                        due_date: dueDate
+                    }
+                }));
+                
+                showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
                 renderTasks();
             }
+            closeModal('reminderModal');
         }
         
         function deleteTask(index) {
             if (confirm("Удалить эту задачу?")) {
                 tasks.splice(index, 1);
                 renderTasks();
+                showNotification('Задача удалена');
             }
         }
         
@@ -296,32 +486,23 @@
             renderTasks();
         }
         
-        function setReminder(index) {
-            const datetime = prompt("Установите дату и время напоминания (YYYY-MM-DD HH:MM):");
-            if (datetime) {
-                const dueDate = new Date(datetime).toISOString();
-                tasks[index].dueDate = dueDate;
-                
-                tg.sendData(JSON.stringify({
-                    notification: {
-                        task_id: tasks[index].id,
-                        due_date: dueDate
-                    }
-                }));
-                
-                showNotification(`Напоминание установлено на ${new Date(dueDate).toLocaleString()}`);
-            }
-        }
-        
         function saveTasks() {
             tg.sendData(JSON.stringify({ tasks: tasks }));
             tg.close();
         }
         
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
         function showNotification(message) {
             const popup = document.createElement('div');
             popup.className = 'notification-popup';
-            popup.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+            popup.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> ${message}`;
             document.body.appendChild(popup);
             
             setTimeout(() => {
@@ -330,14 +511,41 @@
             }, 3000);
         }
         
+        // Автоматическое обновление задач от бота
+        function updateTasksFromBot() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.query_id) {
+                // Запрашиваем свежие данные у бота
+                tg.sendData(JSON.stringify({ action: "update" }));
+            }
+        }
+        
         // Обработчики событий
         addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
+        // Обработчик сообщений от бота (если нужно)
+        tg.onEvent('webAppDataReceived', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tasks) {
+                    tasks = data.tasks;
+                    renderTasks();
+                    showNotification('Список задач обновлён');
+                }
+            } catch (e) {
+                console.error('Ошибка обработки данных:', e);
+            }
+        });
+        
         // Инициализация
         renderTasks();
+        
+        // Автоматическое сохранение при закрытии
+        window.addEventListener('beforeunload', () => {
+            tg.sendData(JSON.stringify({ tasks: tasks }));
+        });
     </script>
 </body>
 </html>
