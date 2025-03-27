@@ -1,62 +1,183 @@
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.MainButton.setText('Сохранить').show().onClick(saveAndClose);
-
-    // Получаем актуальные задачи из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    let tasks = [];
-    
-    try {
-        const tasksJson = urlParams.get('tasks');
-        if (tasksJson) {
-            tasks = JSON.parse(decodeURIComponent(tasksJson));
-            if (!Array.isArray(tasks)) tasks = [];
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-    } catch (e) {
-        console.error("Ошибка загрузки задач:", e);
-    }
-
-    // Функция отображения задач
-    function renderTasks() {
-        const container = document.getElementById('tasksList');
-        if (!container) return;
         
-        container.innerHTML = tasks.map((task, index) => `
-            <div class="task">
-                <span>${task}</span>
-                <button onclick="deleteTask(${index})">×</button>
-            </div>
-        `).join('');
-    }
+        body {
+            background-color: #f8f8f8;
+            color: #222;
+            padding: 16px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #000;
+        }
+        
+        .task-input {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        #newTask {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        #addTaskBtn {
+            background: #2ea6ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        
+        .task-text {
+            flex: 1;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Менеджер задач</h1>
+        
+        <div class="task-input">
+            <input type="text" id="newTask" placeholder="Введите новую задачу...">
+            <button id="addTaskBtn">Добавить</button>
+        </div>
+        
+        <div class="tasks-list" id="tasksList">
+            <!-- Задачи будут добавляться сюда -->
+        </div>
+    </div>
 
-    // Добавление новой задачи
-    function addTask() {
-        const input = document.getElementById('newTask');
-        const text = input.value.trim();
-        if (text) {
-            tasks.push(text);
-            input.value = '';
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        
+        // Раскрываем на весь экран
+        tg.expand();
+        
+        // Кнопка сохранения
+        tg.MainButton.setText('СОХРАНИТЬ').show();
+        tg.MainButton.onClick(saveAndClose);
+        
+        // Получаем задачи из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        let tasks = [];
+        
+        try {
+            const tasksJson = urlParams.get('tasks');
+            if (tasksJson) {
+                tasks = JSON.parse(decodeURIComponent(tasksJson));
+                if (!Array.isArray(tasks)) tasks = [];
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки задач:', e);
+        }
+        
+        // Элементы интерфейса
+        const newTaskInput = document.getElementById('newTask');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const tasksList = document.getElementById('tasksList');
+        
+        // Добавление задачи
+        addTaskBtn.addEventListener('click', addTask);
+        newTaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+        
+        function addTask() {
+            const text = newTaskInput.value.trim();
+            if (text) {
+                tasks.push(text);
+                newTaskInput.value = '';
+                renderTasks();
+            }
+        }
+        
+        // Удаление задачи
+        function deleteTask(index) {
+            tasks.splice(index, 1);
             renderTasks();
         }
-    }
-
-    // Удаление задачи
-    function deleteTask(index) {
-        tasks.splice(index, 1);
+        
+        // Отображение задач
+        function renderTasks() {
+            tasksList.innerHTML = tasks.map((task, index) => `
+                <div class="task">
+                    <div class="task-text">${task}</div>
+                    <button class="delete-btn" onclick="deleteTask(${index})">×</button>
+                </div>
+            `).join('');
+        }
+        
+        // Сохранение и закрытие
+        function saveAndClose() {
+            tg.sendData(JSON.stringify({
+                user_id: urlParams.get('user_id'),
+                tasks: tasks
+            }));
+            tg.close();
+        }
+        
+        // Первоначальная отрисовка
         renderTasks();
-    }
-
-    // Сохранение и закрытие
-    function saveAndClose() {
-        tg.sendData(JSON.stringify({
-            user_id: urlParams.get('user_id'),
-            tasks: tasks,
-            timestamp: new Date().toISOString()
-        }));
-        tg.close();
-    }
-
-    // Первоначальная отрисовка
-    renderTasks();
-</script>
+    </script>
+</body>
+</html>
