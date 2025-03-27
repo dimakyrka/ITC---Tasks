@@ -3,43 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Общий список задач</title>
+    <title>Task Manager Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #007aff;
-            --edit-color: #34c759;
-            --danger-color: #ff3b30;
-            --bg-color: #f2f2f7;
-            --card-color: #ffffff;
-            --text-color: #1c1c1e;
-            --border-color: #d1d1d6;
-            --placeholder-color: #8e8e93;
+            --primary: #007AFF;
+            --danger: #FF3B30;
+            --warning: #FF9500;
+            --success: #34C759;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #1C1C1E;
+            --border: #D1D1D6;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
+            font-family: -apple-system, system-ui, sans-serif;
+            background: var(--bg);
             margin: 0;
             padding: 16px;
-            color: var(--text-color);
+            color: var(--text);
         }
 
         .container {
-            background-color: var(--card-color);
+            background: var(--card);
             border-radius: 14px;
             padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            max-width: 600px;
-            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        h1 {
-            font-size: 22px;
-            margin: 0 0 20px 0;
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
         }
 
-        .input-group {
+        .empty-state img {
+            width: 150px;
+            opacity: 0.7;
+            margin-bottom: 20px;
+        }
+
+        .task-input {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
@@ -48,24 +53,26 @@
         #taskInput {
             flex: 1;
             padding: 12px 15px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
             border-radius: 10px;
             font-size: 16px;
         }
 
-        #taskInput:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        #addButton {
-            background-color: var(--primary-color);
-            color: white;
+        .btn {
             border: none;
             border-radius: 10px;
-            padding: 0 20px;
+            padding: 0 16px;
             font-size: 16px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
         .task-list {
@@ -78,85 +85,92 @@
             display: flex;
             align-items: center;
             padding: 12px;
-            background-color: var(--bg-color);
+            background: var(--bg);
             border-radius: 10px;
-            animation: fadeIn 0.3s ease-out;
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+
+        .task:active {
+            cursor: grabbing;
+            transform: scale(1.02);
         }
 
         .task-content {
             flex: 1;
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
-        .task-text {
-            flex: 1;
-            word-break: break-word;
-            padding: 0 10px;
+        .task-actions {
+            display: flex;
+            gap: 6px;
         }
 
-        .task-edit-input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            margin-right: 10px;
-        }
-
-        .edit-btn, .save-btn, .delete-btn {
-            border: none;
-            border-radius: 6px;
+        .action-btn {
             width: 32px;
             height: 32px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            margin-left: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            opacity: 0.7;
+            transition: all 0.2s;
         }
 
-        .edit-btn {
-            background-color: var(--edit-color);
-            color: white;
+        .action-btn:hover {
+            opacity: 1;
+            background: rgba(0,0,0,0.05);
         }
 
-        .save-btn {
-            background-color: var(--primary-color);
-            color: white;
+        .notification-popup {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card);
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease-out;
         }
 
-        .delete-btn {
-            background-color: var(--danger-color);
-            color: white;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 30px 0;
-            color: var(--placeholder-color);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Общий список задач</h1>
-        <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
-            <button id="addButton">Добавить</button>
+        <h1><i class="fas fa-tasks"></i> Общие задачи</h1>
+        
+        <div class="task-input">
+            <input type="text" id="taskInput" placeholder="Добавить задачу..." autofocus>
+            <button id="addBtn" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
-        <div class="task-list" id="tasksList">
-            <div class="empty-state" id="emptyState">Нет задач. Добавьте первую!</div>
+
+        <div class="task-list" id="taskList">
+            <div class="empty-state" id="emptyState">
+                <img src="https://illustrations.popsy.co/amber/relaxation.svg" alt="No tasks">
+                <p>Здесь пока нет задач</p>
+            </div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        
+        // Drag and Drop
+        let draggedItem = null;
         
         // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -172,91 +186,157 @@
             console.error('Ошибка загрузки задач:', e);
         }
         
-        // Элементы интерфейса
+        // Элементы
         const taskInput = document.getElementById('taskInput');
-        const addButton = document.getElementById('addButton');
-        const tasksList = document.getElementById('tasksList');
+        const addBtn = document.getElementById('addBtn');
+        const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
         
-        // Настройка кнопки сохранения
-        tg.MainButton.setText('СОХРАНИТЬ').show();
+        // Инициализация
+        tg.MainButton.setParams({
+            text: 'СОХРАНИТЬ',
+            color: '#007AFF'
+        }).show();
+        
         tg.MainButton.onClick(saveTasks);
         
-        // Добавление задачи
-        function addTask() {
-            const text = taskInput.value.trim();
-            if (text) {
-                tasks.push(text);
-                taskInput.value = '';
-                renderTasks();
-                taskInput.focus();
-            }
-        }
-        
-        // Удаление задачи
-        function deleteTask(index) {
-            tasks.splice(index, 1);
-            renderTasks();
-        }
-        
-        // Редактирование задачи
-        function editTask(index) {
-            const taskElement = document.querySelector(`.task[data-index="${index}"]`);
-            const currentText = tasks[index];
-            
-            taskElement.innerHTML = `
-                <div class="task-content">
-                    <input type="text" class="task-edit-input" value="${currentText}">
-                    <button class="save-btn" onclick="saveTask(${index})">✓</button>
-                </div>
-                <button class="delete-btn" onclick="deleteTask(${index})">×</button>
-            `;
-            
-            taskElement.querySelector('.task-edit-input').focus();
-        }
-        
-        // Сохранение отредактированной задачи
-        function saveTask(index) {
-            const newText = document.querySelector(`.task[data-index="${index}"] .task-edit-input`).value.trim();
-            if (newText) {
-                tasks[index] = newText;
-                renderTasks();
-            }
-        }
-        
-        // Отрисовка задач
+        // Функции
         function renderTasks() {
             if (tasks.length === 0) {
                 emptyState.style.display = 'block';
-                tasksList.innerHTML = '';
-                tasksList.appendChild(emptyState);
-            } else {
-                emptyState.style.display = 'none';
-                tasksList.innerHTML = tasks.map((task, index) => `
-                    <div class="task" data-index="${index}">
-                        <div class="task-content">
-                            <div class="task-text">${task}</div>
-                            <button class="edit-btn" onclick="editTask(${index})">✎</button>
-                        </div>
-                        <button class="delete-btn" onclick="deleteTask(${index})">×</button>
+                taskList.innerHTML = '';
+                taskList.appendChild(emptyState);
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            taskList.innerHTML = '';
+            
+            tasks.forEach((task, index) => {
+                const taskEl = document.createElement('div');
+                taskEl.className = 'task';
+                taskEl.draggable = true;
+                taskEl.dataset.index = index;
+                
+                taskEl.innerHTML = `
+                    <div class="task-content">
+                        <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
+                        <span>${task.text}</span>
+                        ${task.dueDate ? `<small><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</small>` : ''}
                     </div>
-                `).join('');
+                    <div class="task-actions">
+                        <button class="action-btn" onclick="setReminder(${index})" title="Напоминание">
+                            <i class="far fa-bell"></i>
+                        </button>
+                        <button class="action-btn" onclick="editTask(${index})" title="Редактировать">
+                            <i class="far fa-edit"></i>
+                        </button>
+                        <button class="action-btn" onclick="deleteTask(${index})" title="Удалить">
+                            <i class="far fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+                
+                taskEl.addEventListener('dragstart', () => {
+                    draggedItem = index;
+                    setTimeout(() => taskEl.style.opacity = '0.4', 0);
+                });
+                
+                taskEl.addEventListener('dragend', () => {
+                    taskEl.style.opacity = '1';
+                });
+                
+                taskEl.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                taskEl.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedItem !== null && draggedItem !== index) {
+                        moveTask(draggedItem, index);
+                    }
+                });
+                
+                taskList.appendChild(taskEl);
+            });
+        }
+        
+        function addTask() {
+            const text = taskInput.value.trim();
+            if (text) {
+                tasks.push({
+                    id: Date.now().toString(),
+                    text: text,
+                    createdAt: new Date().toISOString()
+                });
+                taskInput.value = '';
+                renderTasks();
+                showNotification(`Задача добавлена: ${text}`);
             }
         }
         
-        // Сохранение задач
+        function editTask(index) {
+            const newText = prompt("Редактировать задачу:", tasks[index].text);
+            if (newText !== null) {
+                tasks[index].text = newText.trim();
+                renderTasks();
+            }
+        }
+        
+        function deleteTask(index) {
+            if (confirm("Удалить эту задачу?")) {
+                tasks.splice(index, 1);
+                renderTasks();
+            }
+        }
+        
+        function moveTask(fromIndex, toIndex) {
+            const item = tasks.splice(fromIndex, 1)[0];
+            tasks.splice(toIndex, 0, item);
+            renderTasks();
+        }
+        
+        function setReminder(index) {
+            const datetime = prompt("Установите дату и время напоминания (YYYY-MM-DD HH:MM):");
+            if (datetime) {
+                const dueDate = new Date(datetime).toISOString();
+                tasks[index].dueDate = dueDate;
+                
+                tg.sendData(JSON.stringify({
+                    notification: {
+                        task_id: tasks[index].id,
+                        due_date: dueDate
+                    }
+                }));
+                
+                showNotification(`Напоминание установлено на ${new Date(dueDate).toLocaleString()}`);
+            }
+        }
+        
         function saveTasks() {
             tg.sendData(JSON.stringify({ tasks: tasks }));
             tg.close();
         }
         
+        function showNotification(message) {
+            const popup = document.createElement('div');
+            popup.className = 'notification-popup';
+            popup.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+            document.body.appendChild(popup);
+            
+            setTimeout(() => {
+                popup.style.opacity = '0';
+                setTimeout(() => popup.remove(), 300);
+            }, 3000);
+        }
+        
         // Обработчики событий
-        addButton.addEventListener('click', addTask);
+        addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
-        // Первоначальная отрисовка
+        // Инициализация
         renderTasks();
     </script>
 </body>
