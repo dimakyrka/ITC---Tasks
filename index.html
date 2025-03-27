@@ -30,24 +30,23 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-        
-        let tasks = [];
-        
-        // Инициализация кнопки закрытия
-        tg.MainButton.setText('Закрыть').show();
-        tg.MainButton.onClick(() => tg.close());
-        
-        function renderTasks() {
-            const container = document.getElementById('tasksList');
-            container.innerHTML = tasks.map((task, index) => `
-                <div class="task">
-                    ${task}
-                    <button onclick="deleteTask(${index})">Удалить</button>
-                </div>
-            `).join('');
-        }
+    tg.expand();
+    tg.MainButton.setText('Сохранить и закрыть').show().onClick(saveAndClose);
+
+    // Загрузка параметров из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    
+    let tasks = [];
+
+    function saveAndClose() {
+        tg.sendData(JSON.stringify({
+            user_id: userId,
+            tasks: tasks,
+            timestamp: new Date().toISOString()
+        }));
+        tg.close();
+    }
         
         function addTask() {
             const input = document.getElementById('newTask');
