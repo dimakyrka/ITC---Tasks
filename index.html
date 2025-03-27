@@ -75,6 +75,11 @@
             color: white;
         }
 
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
         .task-list {
             display: flex;
             flex-direction: column;
@@ -83,7 +88,7 @@
 
         .task {
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Изменено для правильного переноса текста */
             padding: 12px;
             background: var(--bg);
             border-radius: 10px;
@@ -99,8 +104,22 @@
         .task-content {
             flex: 1;
             display: flex;
+            flex-direction: column; /* Текст в колонку */
+            gap: 6px;
+            overflow: hidden;
+            word-break: break-word; /* Перенос длинных слов */
+        }
+
+        .task-text {
+            white-space: pre-wrap; /* Сохраняем переносы строк */
+        }
+
+        .task-time {
+            font-size: 12px;
+            color: #666;
+            display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 4px;
         }
 
         .task-actions {
@@ -294,6 +313,24 @@
         </div>
     </div>
 
+    <!-- Модальное окно подтверждения удаления -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Удаление задачи</div>
+                <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить эту задачу?</p>
+                <p id="deleteTaskText" style="font-weight: 500; margin-top: 10px;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('deleteModal')">Отмена</button>
+                <button class="btn btn-danger" onclick="confirmDeleteTask()">Удалить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -301,6 +338,7 @@
         // Drag and Drop
         let draggedItem = null;
         let currentEditIndex = null;
+        let taskToDeleteIndex = null;
         
         // Получаем задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -325,6 +363,8 @@
         const editTaskInput = document.getElementById('editTaskInput');
         const reminderModal = document.getElementById('reminderModal');
         const reminderDateTime = document.getElementById('reminderDateTime');
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteTaskText = document.getElementById('deleteTaskText');
         
         // Установка минимальной даты для напоминания (текущая дата)
         reminderDateTime.min = new Date().toISOString().slice(0, 16);
@@ -361,8 +401,12 @@
                 taskEl.innerHTML = `
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
-                        <span>${task.text}</span>
-                        ${task.dueDate ? `<small><i class="far fa-clock"></i> ${formatDateTime(task.dueDate)}</small>` : ''}
+                        <div class="task-text">${task.text}</div>
+                        ${task.dueDate ? `
+                        <div class="task-time">
+                            <i class="far fa-clock"></i>
+                            ${formatDateTime(task.dueDate)}
+                        </div>` : ''}
                     </div>
                     <div class="task-actions">
                         <button class="action-btn" onclick="openReminderModal(${index})" title="Напоминание">
@@ -371,7 +415,7 @@
                         <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
                             <i class="far fa-edit"></i>
                         </button>
-                        <button class="action-btn" onclick="deleteTask(${index})" title="Удалить">
+                        <button class="action-btn" onclick="openDeleteModal(${index})" title="Удалить">
                             <i class="far fa-trash-alt"></i>
                         </button>
                     </div>
@@ -415,7 +459,8 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                tasks.push({
+                // Добавляем задачу в начало массива
+                tasks.unshift({
                     id: Date.now().toString(),
                     text: text,
                     createdAt: new Date().toISOString()
@@ -472,12 +517,20 @@
             closeModal('reminderModal');
         }
         
-        function deleteTask(index) {
-            if (confirm("Удалить эту задачу?")) {
-                tasks.splice(index, 1);
+        function openDeleteModal(index) {
+            taskToDeleteIndex = index;
+            deleteTaskText.textContent = tasks[index].text;
+            openModal('deleteModal');
+        }
+        
+        function confirmDeleteTask() {
+            if (taskToDeleteIndex !== null) {
+                tasks.splice(taskToDeleteIndex, 1);
                 renderTasks();
                 showNotification('Задача удалена');
+                taskToDeleteIndex = null;
             }
+            closeModal('deleteModal');
         }
         
         function moveTask(fromIndex, toIndex) {
