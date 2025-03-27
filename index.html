@@ -88,12 +88,22 @@
 
         .task {
             display: flex;
-            align-items: flex-start; /* Изменено для правильного переноса текста */
+            align-items: flex-start;
             padding: 12px;
             background: var(--bg);
             border-radius: 10px;
             cursor: grab;
             transition: transform 0.2s;
+            position: relative;
+        }
+
+        .task-color-indicator {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
         }
 
         .task:active {
@@ -104,14 +114,15 @@
         .task-content {
             flex: 1;
             display: flex;
-            flex-direction: column; /* Текст в колонку */
+            flex-direction: column;
             gap: 6px;
             overflow: hidden;
-            word-break: break-word; /* Перенос длинных слов */
+            word-break: break-word;
+            margin-left: 8px;
         }
 
         .task-text {
-            white-space: pre-wrap; /* Сохраняем переносы строк */
+            white-space: pre-wrap;
         }
 
         .task-time {
@@ -145,6 +156,11 @@
         .action-btn:hover {
             opacity: 1;
             background: rgba(0,0,0,0.05);
+        }
+
+        .action-btn.active {
+            opacity: 1;
+            color: var(--warning);
         }
 
         /* Модальные окна */
@@ -232,6 +248,26 @@
             font-size: 16px;
         }
 
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: var(--text);
+            transform: scale(1.1);
+        }
+
         /* Уведомления */
         .notification-popup {
             position: fixed;
@@ -246,6 +282,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            z-index: 999;
         }
 
         @keyframes slideUp {
@@ -284,6 +321,18 @@
                 <div class="form-group">
                     <label class="form-label">Текст задачи</label>
                     <input type="text" class="form-input" id="editTaskInput">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Цвет задачи</label>
+                    <div class="color-picker">
+                        <div class="color-option" style="background: #007AFF;" onclick="selectColor(this, '#007AFF')"></div>
+                        <div class="color-option" style="background: #34C759;" onclick="selectColor(this, '#34C759')"></div>
+                        <div class="color-option" style="background: #FF9500;" onclick="selectColor(this, '#FF9500')"></div>
+                        <div class="color-option" style="background: #FF3B30;" onclick="selectColor(this, '#FF3B30')"></div>
+                        <div class="color-option" style="background: #AF52DE;" onclick="selectColor(this, '#AF52DE')"></div>
+                        <div class="color-option" style="background: #FFCC00;" onclick="selectColor(this, '#FFCC00')"></div>
+                    </div>
+                    <input type="hidden" id="selectedColor" value="">
                 </div>
             </div>
             <div class="modal-footer">
@@ -365,6 +414,7 @@
         const reminderDateTime = document.getElementById('reminderDateTime');
         const deleteModal = document.getElementById('deleteModal');
         const deleteTaskText = document.getElementById('deleteTaskText');
+        const selectedColor = document.getElementById('selectedColor');
         
         // Установка минимальной даты для напоминания (текущая дата)
         reminderDateTime.min = new Date().toISOString().slice(0, 16);
@@ -398,6 +448,14 @@
                 taskEl.draggable = true;
                 taskEl.dataset.index = index;
                 
+                // Добавляем цветной индикатор
+                if (task.color) {
+                    const colorIndicator = document.createElement('div');
+                    colorIndicator.className = 'task-color-indicator';
+                    colorIndicator.style.background = task.color;
+                    taskEl.appendChild(colorIndicator);
+                }
+                
                 taskEl.innerHTML = `
                     <div class="task-content">
                         <i class="fas fa-grip-vertical" style="opacity: 0.3;"></i>
@@ -409,7 +467,7 @@
                         </div>` : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="action-btn" onclick="openReminderModal(${index})" title="Напоминание">
+                        <button class="action-btn ${task.dueDate ? 'active' : ''}" onclick="openReminderModal(${index})" title="Напоминание">
                             <i class="far fa-bell"></i>
                         </button>
                         <button class="action-btn" onclick="openEditModal(${index})" title="Редактировать">
@@ -463,7 +521,8 @@
                 tasks.unshift({
                     id: Date.now().toString(),
                     text: text,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    color: ''
                 });
                 taskInput.value = '';
                 renderTasks();
@@ -474,7 +533,38 @@
         function openEditModal(index) {
             currentEditIndex = index;
             editTaskInput.value = tasks[index].text;
+            selectedColor.value = tasks[index].color || '#007AFF';
+            updateColorSelection();
             openModal('editModal');
+        }
+        
+        function selectColor(element, color) {
+            // Убираем выделение у всех цветов
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Выделяем выбранный цвет
+            element.classList.add('selected');
+            selectedColor.value = color;
+        }
+        
+        function updateColorSelection() {
+            // Снимаем все выделения
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Находим и выделяем текущий цвет
+            if (selectedColor.value) {
+                const colorOptions = document.querySelectorAll('.color-option');
+                for (let i = 0; i < colorOptions.length; i++) {
+                    if (colorOptions[i].style.background === selectedColor.value) {
+                        colorOptions[i].classList.add('selected');
+                        break;
+                    }
+                }
+            }
         }
         
         function saveEditedTask() {
@@ -482,6 +572,7 @@
                 const newText = editTaskInput.value.trim();
                 if (newText) {
                     tasks[currentEditIndex].text = newText;
+                    tasks[currentEditIndex].color = selectedColor.value;
                     renderTasks();
                     showNotification('Задача обновлена');
                 }
@@ -578,7 +669,7 @@
             if (e.key === 'Enter') addTask();
         });
         
-        // Обработчик сообщений от бота (если нужно)
+        // Обработчик сообщений от бота
         tg.onEvent('webAppDataReceived', (event) => {
             try {
                 const data = JSON.parse(event.data);
