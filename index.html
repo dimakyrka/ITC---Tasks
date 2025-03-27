@@ -7,14 +7,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f7;
             margin: 0;
             padding: 16px;
             color: #1c1c1e;
         }
         .container {
-            background: #ffffff;
+            background: white;
             border-radius: 12px;
             padding: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -44,11 +44,6 @@
             font-size: 16px;
             cursor: pointer;
         }
-        .task-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
         .task {
             display: flex;
             justify-content: space-between;
@@ -56,6 +51,7 @@
             padding: 12px;
             background: #f5f5f7;
             border-radius: 8px;
+            margin-bottom: 8px;
         }
         .task-text {
             flex: 1;
@@ -73,28 +69,27 @@
             justify-content: center;
             cursor: pointer;
             margin-left: 8px;
-            flex-shrink: 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Менеджер задач</h1>
+        <h1>Мои задачи</h1>
         
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Введите задачу..." autocomplete="off">
-            <button id="addButton">Добавить</button>
+            <input type="text" id="taskInput" placeholder="Новая задача...">
+            <button id="addButton">+</button>
         </div>
         
-        <div class="task-list" id="tasksContainer"></div>
+        <div id="tasksContainer"></div>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
+        // Инициализация WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Получаем параметры из URL
+        // Получаем параметры
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user_id');
         
@@ -116,16 +111,16 @@
         const tasksContainer = document.getElementById('tasksContainer');
         
         // Настройка кнопки
-        tg.MainButton.setText('ГОТОВО').show();
-        tg.MainButton.onClick(saveAndClose);
-        
-        // Обработчики событий
-        addButton.addEventListener('click', addTask);
-        taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTask();
+        tg.MainButton.setText('СОХРАНИТЬ').show();
+        tg.MainButton.onClick(() => {
+            tg.sendData(JSON.stringify({
+                user_id: userId,
+                tasks: tasks
+            }));
+            tg.close();
         });
         
-        // Функции
+        // Добавление задачи
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
@@ -136,11 +131,13 @@
             taskInput.focus();
         }
         
+        // Удаление задачи
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
         }
         
+        // Отрисовка задач
         function renderTasks() {
             tasksContainer.innerHTML = tasks.map((task, index) => `
                 <div class="task">
@@ -150,24 +147,10 @@
             `).join('');
         }
         
-        function saveAndClose() {
-            tg.sendData(JSON.stringify({
-                user_id: userId,
-                tasks: tasks,
-                action: "save"
-            }));
-            tg.close();
-        }
-        
-        // Автосохранение при сворачивании
-        tg.onEvent('viewportChanged', (event) => {
-            if (!tg.isExpanded) {
-                tg.sendData(JSON.stringify({
-                    user_id: userId,
-                    tasks: tasks,
-                    action: "autosave"
-                }));
-            }
+        // Обработчики событий
+        addButton.addEventListener('click', addTask);
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
         });
         
         // Первоначальная отрисовка
