@@ -10,14 +10,7 @@
             font-family: Arial, sans-serif;
             padding: 20px;
             background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 0;
         }
         .task {
             padding: 10px;
@@ -25,52 +18,35 @@
             display: flex;
             justify-content: space-between;
         }
-        button {
-            background: #2481cc;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        input {
-            padding: 8px;
-            width: 70%;
-            margin-right: 10px;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="app">
         <h2>Менеджер задач</h2>
-        
-        <div style="margin-bottom: 20px;">
-            <input type="text" id="newTask" placeholder="Новая задача">
-            <button onclick="addTask()">Добавить</button>
-        </div>
-        
+        <input type="text" id="newTask" placeholder="Новая задача">
+        <button onclick="addTask()">Добавить</button>
         <div id="tasksList"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
         
         let tasks = [];
         
+        // Инициализация кнопки закрытия
+        tg.MainButton.setText('Закрыть').show();
+        tg.MainButton.onClick(() => tg.close());
+        
         function renderTasks() {
             const container = document.getElementById('tasksList');
-            container.innerHTML = '';
-            
-            tasks.forEach((task, index) => {
-                const taskElement = document.createElement('div');
-                taskElement.className = 'task';
-                taskElement.innerHTML = `
+            container.innerHTML = tasks.map((task, index) => `
+                <div class="task">
                     ${task}
                     <button onclick="deleteTask(${index})">Удалить</button>
-                `;
-                container.appendChild(taskElement);
-            });
+                </div>
+            `).join('');
         }
         
         function addTask() {
@@ -79,31 +55,16 @@
                 tasks.push(input.value.trim());
                 input.value = '';
                 renderTasks();
-                saveTasks();
             }
         }
         
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
-            saveTasks();
         }
         
-        function saveTasks() {
-            tg.sendData(JSON.stringify(tasks));
-        }
-        
-        // Получаем задачи при загрузке
-        tg.ready();
-        tg.onEvent('webAppDataReceived', (event) => {
-            if (event && event.data) {
-                tasks = JSON.parse(event.data);
-                renderTasks();
-            }
-        });
-        
-        // Запрашиваем данные у бота
-        tg.sendData('get_tasks');
+        // Первоначальная загрузка
+        renderTasks();
     </script>
 </body>
 </html>
