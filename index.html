@@ -80,7 +80,7 @@
     <div class="container">
         <h1>Мои задачи</h1>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Введите задачу..." autofocus>
+            <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
         </div>
         <div class="task-list" id="tasksList"></div>
@@ -101,7 +101,7 @@
             const tasksJson = urlParams.get('tasks');
             if (tasksJson) {
                 tasks = JSON.parse(decodeURIComponent(tasksJson));
-                console.log('Загруженные задачи:', tasks);
+                if (!Array.isArray(tasks)) tasks = [];
             }
         } catch (e) {
             console.error('Ошибка загрузки задач:', e);
@@ -114,13 +114,7 @@
         
         // Настройка кнопки сохранения
         tg.MainButton.setText('СОХРАНИТЬ').show();
-        tg.MainButton.onClick(() => {
-            tg.sendData(JSON.stringify({
-                user_id: userId,
-                tasks: tasks
-            }));
-            tg.close();
-        });
+        tg.MainButton.onClick(saveTasks);
         
         // Добавление задачи
         function addTask() {
@@ -147,6 +141,15 @@
                     <button class="delete-btn" onclick="deleteTask(${index})">×</button>
                 </div>
             `).join('');
+        }
+        
+        // Сохранение задач
+        function saveTasks() {
+            tg.sendData(JSON.stringify({
+                user_id: userId,
+                tasks: tasks
+            }));
+            tg.close();
         }
         
         // Обработчики событий
