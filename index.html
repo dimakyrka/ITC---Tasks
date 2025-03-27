@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager Pro</title>
+    <title>Task Manager</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -252,6 +252,7 @@
             display: flex;
             gap: 8px;
             margin-top: 8px;
+            flex-wrap: wrap;
         }
 
         .color-option {
@@ -293,7 +294,7 @@
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-tasks"></i> Общие задачи</h1>
+        <h1><i class="fas fa-tasks"></i> Менеджер задач</h1>
         
         <div class="task-input">
             <input type="text" id="taskInput" placeholder="Добавить задачу..." autofocus>
@@ -331,6 +332,9 @@
                         <div class="color-option" style="background: #FF3B30;" onclick="selectColor(this, '#FF3B30')"></div>
                         <div class="color-option" style="background: #AF52DE;" onclick="selectColor(this, '#AF52DE')"></div>
                         <div class="color-option" style="background: #FFCC00;" onclick="selectColor(this, '#FFCC00')"></div>
+                        <div class="color-option" style="background: #5AC8FA;" onclick="selectColor(this, '#5AC8FA')"></div>
+                        <div class="color-option" style="background: #5856D6;" onclick="selectColor(this, '#5856D6')"></div>
+                        <div class="color-option" style="background: #A2845E;" onclick="selectColor(this, '#A2845E')"></div>
                     </div>
                     <input type="hidden" id="selectedColor" value="">
                 </div>
@@ -357,7 +361,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn" onclick="closeModal('reminderModal')">Отмена</button>
-                <button class="btn btn-primary" onclick="saveReminder()">Установить</button>
+                <button class="btn btn-primary" onclick="saveReminder()">Сохранить</button>
             </div>
         </div>
     </div>
@@ -419,16 +423,15 @@
         // Установка минимальной даты для напоминания (текущая дата)
         reminderDateTime.min = new Date().toISOString().slice(0, 16);
         
-        // Инициализация
+        // Инициализация MainButton
         tg.MainButton.setParams({
-            text: 'СОХРАНИТЬ',
-            color: '#007AFF'
+            text: 'СОХРАНИТЬ ИЗМЕНЕНИЯ',
+            color: '#007AFF',
+            is_active: true,
+            is_visible: true
         }).show();
         
         tg.MainButton.onClick(saveTasks);
-        
-        // Автоматическое обновление данных каждые 30 секунд
-        setInterval(updateTasksFromBot, 30000);
         
         // Функции
         function renderTasks() {
@@ -575,9 +578,9 @@
                     tasks[currentEditIndex].color = selectedColor.value;
                     renderTasks();
                     showNotification('Задача обновлена');
+                    closeModal('editModal');
                 }
             }
-            closeModal('editModal');
         }
         
         function openReminderModal(index) {
@@ -604,8 +607,8 @@
                 
                 showNotification(`Напоминание установлено на ${formatDateTime(dueDate)}`);
                 renderTasks();
+                closeModal('reminderModal');
             }
-            closeModal('reminderModal');
         }
         
         function openDeleteModal(index) {
@@ -620,8 +623,8 @@
                 renderTasks();
                 showNotification('Задача удалена');
                 taskToDeleteIndex = null;
+                closeModal('deleteModal');
             }
-            closeModal('deleteModal');
         }
         
         function moveTask(fromIndex, toIndex) {
@@ -631,8 +634,12 @@
         }
         
         function saveTasks() {
-            tg.sendData(JSON.stringify({ tasks: tasks }));
-            tg.close();
+            tg.sendData(JSON.stringify({ 
+                tasks: tasks,
+                action: "save"
+            }));
+            // Не закрываем приложение после сохранения
+            showNotification('Изменения сохранены');
         }
         
         function openModal(modalId) {
@@ -655,14 +662,6 @@
             }, 3000);
         }
         
-        // Автоматическое обновление задач от бота
-        function updateTasksFromBot() {
-            if (tg.initDataUnsafe && tg.initDataUnsafe.query_id) {
-                // Запрашиваем свежие данные у бота
-                tg.sendData(JSON.stringify({ action: "update" }));
-            }
-        }
-        
         // Обработчики событий
         addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
@@ -676,7 +675,6 @@
                 if (data.tasks) {
                     tasks = data.tasks;
                     renderTasks();
-                    showNotification('Список задач обновлён');
                 }
             } catch (e) {
                 console.error('Ошибка обработки данных:', e);
@@ -688,7 +686,10 @@
         
         // Автоматическое сохранение при закрытии
         window.addEventListener('beforeunload', () => {
-            tg.sendData(JSON.stringify({ tasks: tasks }));
+            tg.sendData(JSON.stringify({ 
+                tasks: tasks,
+                action: "autosave"
+            }));
         });
     </script>
 </body>
