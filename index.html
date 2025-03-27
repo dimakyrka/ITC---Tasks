@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Общий список задач</title>
+    <title>Task Manager</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 16px;
             background: #f5f5f5;
+            margin: 0;
+            padding: 16px;
         }
         .container {
             background: white;
@@ -33,7 +34,7 @@
             color: white;
             border: none;
             border-radius: 4px;
-            padding: 0 16px;
+            padding: 8px 16px;
             cursor: pointer;
         }
         .task-list {
@@ -61,7 +62,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Общий список задач</h1>
+        <h1>Мои задачи</h1>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
@@ -73,14 +74,15 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Получаем задачи из URL
+        // Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
         let tasks = [];
         
         try {
-            const tasksParam = urlParams.get('tasks');
-            if (tasksParam) {
-                tasks = JSON.parse(decodeURIComponent(tasksParam));
+            const tasksJson = urlParams.get('tasks');
+            if (tasksJson) {
+                tasks = JSON.parse(decodeURIComponent(tasksJson));
                 if (!Array.isArray(tasks)) tasks = [];
             }
         } catch (e) {
@@ -126,6 +128,7 @@
         // Сохранение задач
         function saveTasks() {
             tg.sendData(JSON.stringify({
+                user_id: userId,
                 tasks: tasks
             }));
             tg.close();
