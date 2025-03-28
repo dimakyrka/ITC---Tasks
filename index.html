@@ -1,178 +1,68 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
+    <title>Мои задачи</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Менеджер задач</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .task-input {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        #taskInput {
-            flex-grow: 1;
-            padding: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-        .task-list {
-            list-style: none;
-            padding: 0;
-        }
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .task-actions button {
-            margin-left: 5px;
-        }
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
+        #taskInput { width: 70%; padding: 8px; }
+        button { padding: 8px 15px; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; display: flex; justify-content: space-between; }
+        .delete-btn { color: red; cursor: pointer; }
     </style>
 </head>
 <body>
     <h1>Мои задачи</h1>
-    <div class="task-input">
-        <input type="text" id="taskInput" placeholder="Введите новую задачу">
-        <button id="addTask">Добавить</button>
+    <div>
+        <input type="text" id="taskInput" placeholder="Новая задача">
+        <button onclick="addTask()">Добавить</button>
     </div>
-    <ul id="taskList" class="task-list"></ul>
+    <ul id="taskList"></ul>
 
     <script>
         // Загрузка задач при открытии
-        document.addEventListener('DOMContentLoaded', loadTasks);
-        
-        // Обработчик добавления задачи
-        document.getElementById('addTask').addEventListener('click', addTask);
-        document.getElementById('taskInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') addTask();
-        });
+        window.Telegram.WebApp.ready();
+        loadTasks();
 
-        // Функция загрузки задач
+        // Загрузить задачи
         async function loadTasks() {
-            try {
-                const response = await fetch('/get-tasks'); // Этот эндпоинт нужно реализовать на сервере
-                const tasks = await response.json();
-                renderTasks(tasks);
-            } catch (error) {
-                console.error('Ошибка загрузки задач:', error);
-                // Для демо-версии используем локальное хранилище
-                const localTasks = localStorage.getItem('tasks');
-                if (localTasks) {
-                    renderTasks(JSON.parse(localTasks));
-                }
-            }
+            const response = await fetch('/get_tasks');
+            const tasks = await response.json();
+            renderTasks(tasks);
         }
 
-        // Функция добавления задачи
+        // Добавить задачу
         async function addTask() {
             const input = document.getElementById('taskInput');
-            const taskText = input.value.trim();
+            const text = input.value.trim();
             
-            if (taskText) {
-                try {
-                    const response = await fetch('/add-task', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ text: taskText })
-                    });
-                    
-                    if (response.ok) {
-                        input.value = '';
-                        loadTasks();
-                    }
-                } catch (error) {
-                    console.error('Ошибка добавления задачи:', error);
-                    // Для демо-версии используем локальное хранилище
-                    const localTasks = JSON.parse(localStorage.getItem('tasks') || []);
-                    localTasks.push({ id: Date.now(), text: taskText });
-                    localStorage.setItem('tasks', JSON.stringify(localTasks));
-                    input.value = '';
-                    renderTasks(localTasks);
-                }
-            }
-        }
-
-        // Функция удаления задачи
-        async function deleteTask(id) {
-            try {
-                const response = await fetch(`/delete-task/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    loadTasks();
-                }
-            } catch (error) {
-                console.error('Ошибка удаления задачи:', error);
-                // Для демо-версии используем локальное хранилище
-                let localTasks = JSON.parse(localStorage.getItem('tasks') || []);
-                localTasks = localTasks.filter(task => task.id !== id);
-                localStorage.setItem('tasks', JSON.stringify(localTasks));
-                renderTasks(localTasks);
-            }
-        }
-
-        // Функция редактирования задачи
-        function editTask(id, currentText) {
-            const newText = prompt('Редактировать задачу:', currentText);
-            if (newText !== null && newText.trim() !== '') {
-                updateTask(id, newText.trim());
-            }
-        }
-
-        // Функция обновления задачи
-        async function updateTask(id, newText) {
-            try {
-                const response = await fetch(`/update-task/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ text: newText })
+            if (text) {
+                await fetch('/add_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
                 });
-                
-                if (response.ok) {
-                    loadTasks();
-                }
-            } catch (error) {
-                console.error('Ошибка обновления задачи:', error);
-                // Для демо-версии используем локальное хранилище
-                let localTasks = JSON.parse(localStorage.getItem('tasks') || []);
-                localTasks = localTasks.map(task => 
-                    task.id === id ? { ...task, text: newText } : task
-                );
-                localStorage.setItem('tasks', JSON.stringify(localTasks));
-                renderTasks(localTasks);
+                input.value = '';
+                loadTasks();
             }
         }
 
-        // Функция отрисовки задач
+        // Удалить задачу
+        async function deleteTask(id) {
+            await fetch(`/delete_task/${id}`, { method: 'DELETE' });
+            loadTasks();
+        }
+
+        // Отобразить задачи
         function renderTasks(tasks) {
-            const taskList = document.getElementById('taskList');
-            taskList.innerHTML = '';
-            
-            tasks.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item';
-                li.innerHTML = `
-                    <span>${task.text}</span>
-                    <div class="task-actions">
-                        <button onclick="editTask(${task.id}, '${task.text.replace(/'/g, "\\'")}')">✏️</button>
-                        <button onclick="deleteTask(${task.id})">❌</button>
-                    </div>
-                `;
-                taskList.appendChild(li);
-            });
+            const list = document.getElementById('taskList');
+            list.innerHTML = tasks.map(task => `
+                <li>
+                    ${task.text}
+                    <span class="delete-btn" onclick="deleteTask(${task.id})">✕</span>
+                </li>
+            `).join('');
         }
     </script>
 </body>
