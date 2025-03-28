@@ -270,6 +270,44 @@
     </div>
 
     <script>
+         async function addTask() {
+            const text = taskInput.value.trim();
+            if (text) {
+                try {
+                    const response = await sendToBot({
+                        action: 'add_task',
+                        text: text,
+                        color: colors[0].value,
+                        reminder: ''
+                    });
+                    
+                    if (response && response.status === 'success') {
+                        taskInput.value = '';
+                        await loadTasks();
+                    }
+                } catch (error) {
+                    console.error('Ошибка добавления задачи:', error);
+                    alert('Не удалось добавить задачу');
+                }
+            }
+        }
+
+        async function sendToBot(data) {
+            return new Promise((resolve) => {
+                if (window.Telegram && Telegram.WebApp) {
+                    Telegram.WebApp.sendData(JSON.stringify(data));
+                    Telegram.WebApp.onEvent('mainButtonClicked', function() {
+                        const receivedData = Telegram.WebApp.receivedData;
+                        resolve(receivedData ? JSON.parse(receivedData) : null);
+                        Telegram.WebApp.offEvent('mainButtonClicked', this);
+                    });
+                } else {
+                    // Для тестирования вне Telegram
+                    console.log('Отправка данных:', data);
+                    resolve({status: 'success'});
+                }
+            });
+        }
         // Инициализация WebApp
         if (window.Telegram && Telegram.WebApp) {
             Telegram.WebApp.expand();
