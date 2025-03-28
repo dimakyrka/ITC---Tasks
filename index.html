@@ -270,44 +270,6 @@
     </div>
 
     <script>
-         async function addTask() {
-            const text = taskInput.value.trim();
-            if (text) {
-                try {
-                    const response = await sendToBot({
-                        action: 'add_task',
-                        text: text,
-                        color: colors[0].value,
-                        reminder: ''
-                    });
-                    
-                    if (response && response.status === 'success') {
-                        taskInput.value = '';
-                        await loadTasks();
-                    }
-                } catch (error) {
-                    console.error('Ошибка добавления задачи:', error);
-                    alert('Не удалось добавить задачу');
-                }
-            }
-        }
-
-        async function sendToBot(data) {
-            return new Promise((resolve) => {
-                if (window.Telegram && Telegram.WebApp) {
-                    Telegram.WebApp.sendData(JSON.stringify(data));
-                    Telegram.WebApp.onEvent('mainButtonClicked', function() {
-                        const receivedData = Telegram.WebApp.receivedData;
-                        resolve(receivedData ? JSON.parse(receivedData) : null);
-                        Telegram.WebApp.offEvent('mainButtonClicked', this);
-                    });
-                } else {
-                    // Для тестирования вне Telegram
-                    console.log('Отправка данных:', data);
-                    resolve({status: 'success'});
-                }
-            });
-        }
         // Инициализация WebApp
         if (window.Telegram && Telegram.WebApp) {
             Telegram.WebApp.expand();
@@ -365,7 +327,7 @@
         async function loadTasks() {
             try {
                 const response = await sendToBot({ action: 'get_tasks' });
-                tasks = response || [];
+                tasks = response?.tasks || [];
                 renderTasks();
             } catch (error) {
                 console.error('Ошибка загрузки задач:', error);
@@ -382,12 +344,13 @@
                         color: colors[0].value
                     });
                     
-                    if (response) {
+                    if (response?.status === 'success') {
                         taskInput.value = '';
                         await loadTasks();
                     }
                 } catch (error) {
                     console.error('Ошибка добавления задачи:', error);
+                    alert('Не удалось добавить задачу');
                 }
             }
         }
@@ -426,7 +389,7 @@
                     reminder: reminder
                 });
                 
-                if (response) {
+                if (response?.status === 'success') {
                     closeEditModal();
                     await loadTasks();
                 }
@@ -442,7 +405,7 @@
                     id: taskId
                 });
                 
-                if (response) {
+                if (response?.status === 'success') {
                     await loadTasks();
                 }
             } catch (error) {
@@ -576,21 +539,21 @@
         }
 
         function sendToBot(data) {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (window.Telegram && Telegram.WebApp) {
                     Telegram.WebApp.sendData(JSON.stringify(data));
                     
-                    Telegram.WebApp.onEvent('mainButtonClicked', () => {
+                    const handler = () => {
                         const response = Telegram.WebApp.receivedData;
+                        Telegram.WebApp.offEvent('mainButtonClicked', handler);
                         resolve(response ? JSON.parse(response) : null);
-                    });
+                    };
                     
-                    // Для демонстрации, если WebApp не в Telegram
-                    setTimeout(() => resolve({status: 'ok'}), 500);
+                    Telegram.WebApp.onEvent('mainButtonClicked', handler);
                 } else {
                     // Эмуляция для тестирования вне Telegram
                     console.log('Отправка данных в бота:', data);
-                    setTimeout(() => resolve({status: 'ok'}), 500);
+                    setTimeout(() => resolve({status: 'success', tasks: []}), 500);
                 }
             });
         }
