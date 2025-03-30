@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Board | ITC</title>
+    <title>ITC Tasks</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
@@ -13,8 +13,10 @@
             --card: #ffffff;
             --text: #334155;
             --primary: #4f46e5;
-            --danger: #ef4444;
-            --success: #10b981;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --purple: #8b5cf6;
             --border: #e2e8f0;
         }
         
@@ -43,6 +45,7 @@
         h1 {
             font-size: 24px;
             font-weight: 600;
+            color: var(--primary);
         }
         
         .task-form {
@@ -65,22 +68,22 @@
             border-color: var(--primary);
         }
         
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        
-        .btn:hover {
-            opacity: 0.9;
-        }
-        
-        .btn-primary {
+        .add-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             background: var(--primary);
             color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.05);
         }
         
         #tasks {
@@ -95,9 +98,17 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             display: flex;
-            justify-content: space-between;
             align-items: center;
             border-left: 4px solid var(--border);
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .task:active {
+            cursor: grabbing;
+            transform: scale(1.01);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .task-content {
@@ -159,6 +170,7 @@
             display: flex;
             gap: 8px;
             margin: 16px 0;
+            justify-content: center;
         }
         
         .color-option {
@@ -176,48 +188,51 @@
 </head>
 <body>
     <header>
-        <h1>Доска задач</h1>
-        <div id="status"></div>
+        <h1>ITC Tasks</h1>
     </header>
     
     <div class="task-form">
-        <input type="text" id="task-input" placeholder="Новая задача..." autocomplete="off">
-        <button id="add-btn" class="btn btn-primary">Добавить</button>
+        <input type="text" id="task-input" placeholder="New task..." autocomplete="off">
+        <button class="add-btn" id="add-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
     </div>
     
     <ul id="tasks"></ul>
     
     <div class="edit-modal" id="edit-modal">
         <div class="modal-content">
-            <h2>Редактировать задачу</h2>
+            <h2>Edit Task</h2>
             <input type="text" id="edit-input" class="task-input">
             <div class="color-picker">
                 <div class="color-option selected" data-color="#e2e8f0" style="background: #e2e8f0;"></div>
-                <div class="color-option" data-color="#fecaca" style="background: #fecaca;"></div>
-                <div class="color-option" data-color="#bfdbfe" style="background: #bfdbfe;"></div>
-                <div class="color-option" data-color="#bbf7d0" style="background: #bbf7d0;"></div>
-                <div class="color-option" data-color="#fef08a" style="background: #fef08a;"></div>
+                <div class="color-option" data-color="#ef4444" style="background: #ef4444;"></div>
+                <div class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                <div class="color-option" data-color="#10b981" style="background: #10b981;"></div>
+                <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
             </div>
             <div style="display: flex; gap: 12px; margin-top: 16px;">
-                <button id="save-edit" class="btn btn-primary">Сохранить</button>
-                <button id="cancel-edit" class="btn">Отмена</button>
+                <button id="save-edit" class="btn btn-primary">Save</button>
+                <button id="cancel-edit" class="btn">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-       // 🔥 Добавьте ЭТОТ КОНФИГ (замените значения на свои из Firebase Console)
+        // Firebase Config
         const firebaseConfig = {
-            apiKey: "AIzaSyBxTm7LX9f5J5GQwXy3Vv2dYqQ1Zz8PQ9E",
-            authDomain: "itc-tasks-12345.firebaseapp.com",
-            databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",  // Ваш URL из Firebase
-            projectId: "itc-tasks-12345",
-            storageBucket: "itc-tasks-12345.appspot.com",
-            messagingSenderId: "9876543210",
-            appId: "1:9876543210:web:abcd1234efgh5678"
+            apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
+            authDomain: "itc-tasks.firebaseapp.com",
+            databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
+            projectId: "itc-tasks",
+            storageBucket: "itc-tasks.firebasestorage.app",
+            messagingSenderId: "736776837496",
+            appId: "1:736776837496:web:27341fe39226d1b8d0108d"
         };
-        
-        // Инициализация Firebase
+
         firebase.initializeApp(firebaseConfig);
         const tasksRef = firebase.database().ref('tasks');
         
@@ -225,6 +240,7 @@
         let tasks = [];
         let currentEditIndex = null;
         let selectedColor = "#e2e8f0";
+        let draggedItem = null;
         
         // DOM Elements
         const taskInput = document.getElementById('task-input');
@@ -245,7 +261,9 @@
         // Render tasks
         function renderTasks() {
             tasksList.innerHTML = tasks.map((task, index) => `
-                <li class="task" style="border-left-color: ${task.color || '#e2e8f0'}">
+                <li class="task" style="border-left-color: ${task.color || '#e2e8f0'}" 
+                    draggable="true"
+                    data-index="${index}">
                     <div class="task-content">${task.text || task}</div>
                     <div class="task-actions">
                         <button class="btn-icon" onclick="openEditModal(${index})">
@@ -263,6 +281,49 @@
                     </div>
                 </li>
             `).join('');
+            
+            // Add drag events
+            document.querySelectorAll('.task').forEach(task => {
+                task.addEventListener('dragstart', handleDragStart);
+                task.addEventListener('dragover', handleDragOver);
+                task.addEventListener('drop', handleDrop);
+                task.addEventListener('dragend', handleDragEnd);
+            });
+        }
+        
+        // Drag and Drop functions
+        function handleDragStart(e) {
+            draggedItem = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            setTimeout(() => this.classList.add('dragging'), 0);
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            if (draggedItem !== this) {
+                const fromIndex = parseInt(draggedItem.dataset.index);
+                const toIndex = parseInt(this.dataset.index);
+                swapTasks(fromIndex, toIndex);
+            }
+        }
+        
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+        }
+        
+        function swapTasks(fromIndex, toIndex) {
+            tasksRef.transaction((currentTasks) => {
+                const temp = currentTasks[fromIndex];
+                currentTasks[fromIndex] = currentTasks[toIndex];
+                currentTasks[toIndex] = temp;
+                return currentTasks;
+            });
         }
         
         // Add task
@@ -271,7 +332,8 @@
             if (text) {
                 tasksRef.transaction((currentTasks) => {
                     currentTasks = currentTasks || [];
-                    currentTasks.push({
+                    // Добавляем в начало массива
+                    currentTasks.unshift({
                         text: text,
                         color: "#e2e8f0",
                         createdAt: Date.now()
