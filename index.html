@@ -78,7 +78,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Мои задачи</h1>
+        <h1>Общие задачи</h1>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
@@ -93,7 +93,6 @@
         
         // Получаем параметры из URL
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
         
         // Загружаем задачи
         let tasks = [];
@@ -146,10 +145,8 @@
         // Сохранение задач
         function saveTasks() {
             tg.sendData(JSON.stringify({
-                user_id: userId,
                 tasks: tasks
             }));
-            tg.close();
         }
         
         // Обработчики событий
