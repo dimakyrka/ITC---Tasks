@@ -74,28 +74,35 @@
             cursor: pointer;
             margin-left: 8px;
         }
-        .refresh-btn {
-            background: #34c759;
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #34C759;
             color: white;
-            border: none;
+            padding: 10px 20px;
             border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .notification.show {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Общие задачи</h1>
-        <button id="refreshButton" class="refresh-btn">⟳ Обновить</button>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
         </div>
         <div class="task-list" id="tasksList"></div>
     </div>
+    
+    <div id="notification" class="notification"></div>
 
     <script>
         // Инициализация WebApp
@@ -108,30 +115,25 @@
         
         // Загружаем задачи
         let tasks = [];
+        try {
+            const tasksJson = urlParams.get('tasks');
+            if (tasksJson) {
+                tasks = JSON.parse(decodeURIComponent(tasksJson));
+                if (!Array.isArray(tasks)) tasks = [];
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки задач:', e);
+        }
         
         // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
-        const refreshButton = document.getElementById('refreshButton');
         const tasksList = document.getElementById('tasksList');
+        const notification = document.getElementById('notification');
         
         // Настройка кнопки сохранения
         tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
-        
-        // Функция загрузки задач
-        function loadTasks() {
-            try {
-                const tasksJson = urlParams.get('tasks');
-                if (tasksJson) {
-                    tasks = JSON.parse(decodeURIComponent(tasksJson));
-                    if (!Array.isArray(tasks)) tasks = [];
-                }
-                renderTasks();
-            } catch (e) {
-                console.error('Ошибка загрузки задач:', e);
-            }
-        }
         
         // Добавление задачи
         function addTask() {
@@ -160,39 +162,32 @@
             `).join('');
         }
         
-        // Сохранение задач
+        // Показать уведомление
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+        
+        // Сохранение задач (без закрытия приложения)
         function saveTasks() {
             tg.sendData(JSON.stringify({
                 user_id: userId,
                 tasks: tasks
             }));
-            tg.close();
-        }
-        
-        // Обновление задач
-        function refreshTasks() {
-            // Принудительно запрашиваем обновление через бота
-            tg.sendData(JSON.stringify({
-                action: "refresh"
-            }));
+            showNotification('✅ Задачи сохранены');
         }
         
         // Обработчики событий
         addButton.addEventListener('click', addTask);
-        refreshButton.addEventListener('click', refreshTasks);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
-        // Обновляем задачи при изменении видимости приложения
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                loadTasks();
-            }
-        });
-        
-        // Первоначальная загрузка задач
-        loadTasks();
+        // Первоначальная отрисовка
+        renderTasks();
     </script>
 </body>
 </html>
