@@ -1,84 +1,54 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const newTaskInput = document.getElementById('new-task-input');
-    const addTaskButton = document.getElementById('add-task-button');
-    const tasksList = document.getElementById('tasks-list');
+const taskInput = document.getElementById("new-task");
+const addTaskButton = document.getElementById("add-task");
+const taskList = document.getElementById("task-list");
 
-    // URL вашего локального сервера Flask
-    const API_BASE_URL = 'http://127.0.0.1:5000';
+let tasks = []; // Здесь будут храниться задачи (пока в памяти браузера)
 
-    // Загружаем задачи при старте
-    loadTasks();
-
-    addTaskButton.addEventListener('click', addTask);
-    newTaskInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addTask();
+// Функция для отображения задач
+function renderTasks() {
+    taskList.innerHTML = ""; // Очищаем список
+    tasks.forEach((task, index) => {
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+            <span>${task}</span>
+            <button class="edit-task" data-index="${index}">Редактировать</button>
+            <button class="delete-task" data-index="${index}">Удалить</button>
+        `;
+        taskList.appendChild(listItem);
     });
+}
 
-    async function loadTasks() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/tasks`);
-            const data = await response.json();
-            
-            if (data.tasks) {
-                renderTasks(data.tasks);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Не удалось загрузить задачи. Убедитесь, что сервер запущен.');
+// Функция для добавления задачи
+function addTask() {
+    const taskText = taskInput.value.trim();
+    if (taskText !== "") {
+        tasks.push(taskText);
+        taskInput.value = "";
+        renderTasks();
+        // TODO:  Здесь нужно будет отправлять задачи на сервер (bot.py)
+    }
+}
+
+// Обработчики событий
+addTaskButton.addEventListener("click", addTask);
+
+taskList.addEventListener("click", (event) => {
+    const target = event.target;
+    const index = target.dataset.index;
+
+    if (target.classList.contains("delete-task")) {
+        tasks.splice(index, 1);
+        renderTasks();
+        // TODO:  Здесь нужно будет отправлять задачи на сервер (bot.py)
+    } else if (target.classList.contains("edit-task")) {
+        const newText = prompt("Редактировать задачу:", tasks[index]);
+        if (newText !== null) {
+            tasks[index] = newText;
+            renderTasks();
+            // TODO:  Здесь нужно будет отправлять задачи на сервер (bot.py)
         }
     }
+});
 
-    function renderTasks(tasks) {
-        tasksList.innerHTML = '';
-        tasks.forEach(task => {
-            const taskElement = document.createElement('div');
-            taskElement.className = 'task';
-            taskElement.innerHTML = `
-                <div class="task-text">${task.text}</div>
-                <div class="task-actions">
-                    <button class="edit-button" data-id="${task.id}">✏️</button>
-                    <button class="delete-button" data-id="${task.id}">🗑️</button>
-                </div>
-            `;
-            tasksList.appendChild(taskElement);
-        });
-
-        // Обработчики для кнопок
-        document.querySelectorAll('.edit-button').forEach(button => {
-            button.addEventListener('click', editTask);
-        });
-
-        document.querySelectorAll('.delete-button').forEach(button => {
-            button.addEventListener('click', deleteTask);
-        });
-    }
-
-    async function addTask() {
-        const text = newTaskInput.value.trim();
-        if (!text) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/tasks`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'add',
-                    text: text
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                newTaskInput.value = '';
-                loadTasks();
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Не удалось добавить задачу');
-        }
-    }
-
-    async function editTask(e) {
-        const taskId = e.target.getAttribute
+// Инициализация (при загрузке страницы)
+renderTasks();
