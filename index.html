@@ -74,11 +74,22 @@
             cursor: pointer;
             margin-left: 8px;
         }
+        .refresh-btn {
+            background: #34c759;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Общие задачи</h1>
+        <button id="refreshButton" class="refresh-btn">⟳ Обновить</button>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
             <button id="addButton">Добавить</button>
@@ -97,24 +108,30 @@
         
         // Загружаем задачи
         let tasks = [];
-        try {
-            const tasksJson = urlParams.get('tasks');
-            if (tasksJson) {
-                tasks = JSON.parse(decodeURIComponent(tasksJson));
-                if (!Array.isArray(tasks)) tasks = [];
-            }
-        } catch (e) {
-            console.error('Ошибка загрузки задач:', e);
-        }
         
         // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
+        const refreshButton = document.getElementById('refreshButton');
         const tasksList = document.getElementById('tasksList');
         
         // Настройка кнопки сохранения
         tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
+        
+        // Функция загрузки задач
+        function loadTasks() {
+            try {
+                const tasksJson = urlParams.get('tasks');
+                if (tasksJson) {
+                    tasks = JSON.parse(decodeURIComponent(tasksJson));
+                    if (!Array.isArray(tasks)) tasks = [];
+                }
+                renderTasks();
+            } catch (e) {
+                console.error('Ошибка загрузки задач:', e);
+            }
+        }
         
         // Добавление задачи
         function addTask() {
@@ -152,14 +169,30 @@
             tg.close();
         }
         
+        // Обновление задач
+        function refreshTasks() {
+            // Принудительно запрашиваем обновление через бота
+            tg.sendData(JSON.stringify({
+                action: "refresh"
+            }));
+        }
+        
         // Обработчики событий
         addButton.addEventListener('click', addTask);
+        refreshButton.addEventListener('click', refreshTasks);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
         
-        // Первоначальная отрисовка
-        renderTasks();
+        // Обновляем задачи при изменении видимости приложения
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                loadTasks();
+            }
+        });
+        
+        // Первоначальная загрузка задач
+        loadTasks();
     </script>
 </body>
 </html>
