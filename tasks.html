@@ -22,15 +22,18 @@
     <ul id="tasks"></ul>
 
     <script>
-        const JSONBIN_API_KEY = "$2a$10$bXWdu9Dj38xVPCscIoYzXuQZra7gdBU66CDt7dnDfd84iEeBehQS2";
-        const JSONBIN_BIN_ID = "67e999cc8a456b79667f8c62";
+        const JSONBIN_API_KEY = "$2a$10$bXWdu9Dj38xVPCscIoYzXuQZra7gdBU66CDt7dnDfd84iEeBehQS2";  // Замени на свой!
+        const JSONBIN_BIN_ID = "67e999cc8a456b79667f8c62";      // Замени на свой!
         let tasks = [];
 
         // Загрузка задач
         async function loadTasks() {
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-                    headers: { "X-Master-Key": JSONBIN_API_KEY }
+                    headers: { 
+                        "X-Master-Key": JSONBIN_API_KEY,
+                        "Content-Type": "application/json"
+                    }
                 });
                 const data = await response.json();
                 tasks = data.record || [];
@@ -45,7 +48,10 @@
             try {
                 await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: "PUT",
-                    headers: { "X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json" },
+                    headers: { 
+                        "X-Master-Key": JSONBIN_API_KEY,
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify(tasks)
                 });
             } catch (error) {
@@ -63,7 +69,7 @@
                 </li>
             `).join("");
             
-            // Добавляем обработчики удаления
+            // Обработчики удаления
             document.querySelectorAll(".delete-btn").forEach(btn => {
                 btn.addEventListener("click", () => deleteTask(btn.dataset.index));
             });
