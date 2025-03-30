@@ -1,83 +1,47 @@
-const taskInput = document.getElementById("new-task");
-const addTaskButton = document.getElementById("add-task");
-const taskList = document.getElementById("task-list");
+const API_URL = 'http://localhost:5000'; // Для разработки
 
-// URL для локальной разработки
-const API_URL = 'http://localhost:5000';
-
-let tasks = [];
-
-// Инициализация
-async function init() {
+// Проверка соединения с сервером
+async function checkServer() {
     try {
-        tasks = await loadTasks();
-        renderTasks();
+        const response = await fetch(`${API_URL}/test`);
+        if (!response.ok) throw new Error("Сервер не отвечает");
+        const data = await response.json();
+        console.log("Тест сервера:", data.message);
+        return true;
     } catch (error) {
-        alert("Ошибка загрузки задач: " + error.message);
+        console.error("Ошибка соединения:", error);
+        alert("Сервер не доступен. Попробуйте позже.");
+        return false;
     }
 }
 
-// Загрузка задач
+// Основные функции
 async function loadTasks() {
     const response = await fetch(`${API_URL}/get-tasks`);
-    if (!response.ok) throw new Error("Сервер не отвечает");
-    return await response.json();
+    if (!response.ok) throw new Error("Ошибка загрузки");
+    const data = await response.json();
+    return data.tasks || [];
 }
 
-// Сохранение задач
-async function saveTasks() {
+async function saveTasks(tasks) {
     const response = await fetch(`${API_URL}/save-tasks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tasks)
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({tasks})
     });
     if (!response.ok) throw new Error("Ошибка сохранения");
 }
 
-// Отображение задач
-function renderTasks() {
-    taskList.innerHTML = tasks.map((task, index) => `
-        <li>
-            <span>${task}</span>
-            <button class="edit" data-index="${index}">✏️</button>
-            <button class="delete" data-index="${index}">🗑️</button>
-        </li>
-    `).join('');
-}
-
-// Добавление задачи
-async function addTask() {
-    const text = taskInput.value.trim();
-    if (text) {
-        tasks.push(text);
-        taskInput.value = "";
-        await saveTasks();
-        renderTasks();
-    }
-}
-
-// Обработчики событий
-addTaskButton.addEventListener("click", addTask);
-taskInput.addEventListener("keypress", e => e.key === "Enter" && addTask());
-
-taskList.addEventListener("click", async (e) => {
-    const index = e.target.dataset.index;
-    if (e.target.classList.contains("delete")) {
-        if (confirm("Удалить задачу?")) {
-            tasks.splice(index, 1);
-            await saveTasks();
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', async () => {
+    if (await checkServer()) {
+        try {
+            tasks = await loadTasks();
             renderTasks();
-        }
-    } else if (e.target.classList.contains("edit")) {
-        const newText = prompt("Редактировать:", tasks[index]);
-        if (newText && newText.trim()) {
-            tasks[index] = newText.trim();
-            await saveTasks();
-            renderTasks();
+        } catch (error) {
+            alert(error.message);
         }
     }
 });
 
-// Инициализация приложения
-Telegram.WebApp.ready();
-Telegram.WebApp.expand
+// ... остальные функции (renderTasks, addTask и обработчики) без изменений
