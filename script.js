@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tasksList = document.getElementById('tasks-list');
 
     // URL вашего локального сервера Flask
-    const API_BASE_URL = 'http://localhost:5000';
+    const API_BASE_URL = 'http://127.0.0.1:5000';
 
     // Загружаем задачи при старте
     loadTasks();
