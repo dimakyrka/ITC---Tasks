@@ -285,7 +285,7 @@
     </header>
     
     <div class="task-form">
-        <input type="text" id="task-input" placeholder="Add a new task..." autocomplete="off">
+        <input type="text" id="task-input" placeholder="Добавь новую задачу..." autocomplete="off">
         <button class="add-btn" id="add-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -295,10 +295,10 @@
     </div>
     
     <ul id="tasks">
-        <!-- Tasks will be inserted here -->
+        <!-- тут задачи будут -->
     </ul>
 
-    <!-- Edit Task Modal -->
+    <!-- режим редактирования -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
             <h2>Редактировать</h2>
@@ -317,7 +317,7 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- удаление -->
     <div class="modal" id="delete-modal">
         <div class="modal-content">
             <h2>Удалить задачу</h2>
@@ -329,7 +329,7 @@
         </div>
     </div>
 
-    <!-- Empty State -->
+    <!-- пустое состояние (задач нет) -->
     <div class="empty-state" id="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
@@ -339,7 +339,7 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // конфиг бдшки
         const firebaseConfig = {
             apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
             authDomain: "itc-tasks.firebaseapp.com",
@@ -351,25 +351,25 @@
         };
 
         
-        // Initialize Firebase
+        // инициализация бдкши
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const tasksRef = database.ref('tasks');
         
-        // State
+        // состояния
         let tasks = [];
         let currentEditIndex = null;
         let currentDeleteIndex = null;
         let selectedColor = "#e5e7eb";
         let draggedItem = null;
         
-        // DOM Elements
+        // DOM элементы
         const taskInput = document.getElementById('task-input');
         const addBtn = document.getElementById('add-btn');
         const tasksList = document.getElementById('tasks');
         const emptyState = document.getElementById('empty-state');
         
-        // Modals
+        //...//
         const editModal = document.getElementById('edit-modal');
         const editInput = document.getElementById('edit-input');
         const saveEditBtn = document.getElementById('save-edit');
@@ -380,14 +380,14 @@
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         
-        // Load tasks from Firebase
+        // парсинг задач из бдшки
         tasksRef.on('value', (snapshot) => {
             tasks = snapshot.val() || [];
             renderTasks();
             updateEmptyState();
         });
         
-        // Render tasks list
+        // отрисовка задач
         function renderTasks() {
             tasksList.innerHTML = '';
             
@@ -419,7 +419,7 @@
                 tasksList.appendChild(taskEl);
             });
             
-            // Add event listeners
+            // добавляем чек событий
             document.querySelectorAll('.task').forEach(task => {
                 task.addEventListener('dragstart', handleDragStart);
                 task.addEventListener('dragover', handleDragOver);
@@ -437,12 +437,12 @@
             });
         }
         
-        // Update empty state visibility
+        // обновляем видимость пустого состояния
         function updateEmptyState() {
             emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
         }
         
-        // Add new task
+        // добавить задачу
         addBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
@@ -464,7 +464,7 @@
             }
         }
         
-        // Edit task functions
+        // функции в редактиовании задачи
         function openEditModal(index) {
             currentEditIndex = index;
             const task = tasks[index];
@@ -517,7 +517,7 @@
             }
         }
         
-        // Delete task functions
+        // функция удаления задачи
         function openDeleteModal(index) {
             currentDeleteIndex = index;
             deleteModal.classList.add('active');
@@ -575,7 +575,7 @@
             });
         }
         
-        // Close modals when clicking outside
+        
         window.addEventListener('click', (e) => {
             if (e.target === editModal) {
                 editModal.classList.remove('active');
