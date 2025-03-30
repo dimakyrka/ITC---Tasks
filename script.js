@@ -2,51 +2,67 @@ const taskInput = document.getElementById("new-task");
 const addTaskButton = document.getElementById("add-task");
 const taskList = document.getElementById("task-list");
 
-let tasks = loadTasks() || []; // Загружаем задачи при старте
+// Для локального тестирования (Flask на порту 5000)
+const API_BASE_URL = 'http://localhost:5000';
 
-// Функция для загрузки задач с сервера
+let tasks = [];
+
+// Загружаем задачи при старте приложения
+document.addEventListener('DOMContentLoaded', async () => {
+    tasks = await loadTasks();
+    renderTasks();
+});
+
+// Функция загрузки задач с сервера
 async function loadTasks() {
     try {
-        const response = await fetch('https://your-server.com/get-tasks'); // Замените на ваш реальный URL
+        const response = await fetch(`${API_BASE_URL}/get-tasks`);
         if (response.ok) {
             return await response.json();
         }
     } catch (error) {
         console.error("Ошибка загрузки задач:", error);
+        // Показываем уведомление в интерфейсе
+        alert("Не удалось загрузить задачи. Проверьте подключение.");
     }
     return [];
 }
 
-// Функция для сохранения задач на сервер
+// Функция сохранения задач на сервер
 async function saveTasks() {
     try {
-        await fetch('https://your-server.com/save-tasks', { // Замените на ваш реальный URL
+        const response = await fetch(`${API_BASE_URL}/save-tasks`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(tasks),
+            body: JSON.stringify(tasks)
         });
+        
+        if (!response.ok) {
+            throw new Error("Ошибка сохранения");
+        }
     } catch (error) {
         console.error("Ошибка сохранения задач:", error);
+        alert("Не удалось сохранить задачи. Попробуйте снова.");
     }
 }
 
-// Функция для отображения задач
+// Отображение задач
 function renderTasks() {
     taskList.innerHTML = "";
     tasks.forEach((task, index) => {
         const listItem = document.createElement("li");
         listItem.innerHTML = `
             <span>${task}</span>
-            <button class="edit-task" data-index="${index}">Редактировать</button>
-            <button class="delete-task" data-index="${index}">Удалить</button>
+            <button class="edit-task" data-index="${index}">✏️</button>
+            <button class="delete-task" data-index="${index}">🗑️</button>
         `;
         taskList.appendChild(listItem);
     });
 }
 
-// Функция для добавления задачи
+// Добавление новой задачи
 async function addTask() {
     const taskText = taskInput.value.trim();
     if (taskText !== "") {
@@ -60,23 +76,38 @@ async function addTask() {
 // Обработчики событий
 addTaskButton.addEventListener("click", addTask);
 
+// Обработка нажатия Enter в поле ввода
+taskInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        addTask();
+    }
+});
+
 taskList.addEventListener("click", async (event) => {
     const target = event.target;
     const index = target.dataset.index;
 
     if (target.classList.contains("delete-task")) {
-        tasks.splice(index, 1);
-        renderTasks();
-        await saveTasks();
+        if (confirm("Вы уверены, что хотите удалить эту задачу?")) {
+            tasks.splice(index, 1);
+            renderTasks();
+            await saveTasks();
+        }
     } else if (target.classList.contains("edit-task")) {
         const newText = prompt("Редактировать задачу:", tasks[index]);
-        if (newText !== null) {
-            tasks[index] = newText;
+        if (newText !== null && newText.trim() !== "") {
+            tasks[index] = newText.trim();
             renderTasks();
             await saveTasks();
         }
     }
 });
 
-// Инициализация
-renderTasks();
+// Инициализация WebApp Telegram
+Telegram.WebApp.ready();
+Telegram.WebApp.expand();
+
+// Опционально: отправка данных назад в бота при закрытии
+window.addEventListener('beforeunload', () => {
+    Telegram.WebApp.sendData(JSON.stringify(tasks));
+});
