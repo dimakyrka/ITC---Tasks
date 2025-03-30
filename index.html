@@ -3,24 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Общие задачи</title>
+    <title>Общий список задач</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 16px; }
-        .task-input { display: flex; gap: 8px; margin-bottom: 16px; }
-        #taskInput { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
-        #addButton { background: #28a745; color: white; }
-        .task { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; }
-        .delete-btn { background: #dc3545; color: white; width: 24px; height: 24px; }
+        body {
+            font-family: -apple-system, sans-serif;
+            padding: 16px;
+            background: #f5f5f7;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .task-input {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        #taskInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #addButton {
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            cursor: pointer;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .delete-btn {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <div class="task-input">
-        <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
-        <button id="addButton">Добавить</button>
+    <div class="container">
+        <div class="task-input">
+            <input type="text" id="taskInput" placeholder="Новая задача..." autofocus>
+            <button id="addButton">Добавить</button>
+        </div>
+        <div id="tasksList"></div>
     </div>
-    <div id="tasksList"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -28,16 +69,22 @@
         tg.MainButton.setText('СОХРАНИТЬ').show();
         
         let tasks = [];
+        const TASKS_FILE = 'tasks.json';
+        const REPO_URL = 'https://api.github.com/repos/ВАШ_ЛОГИН/ВАШ_РЕПОЗИТОРИЙ/contents/' + TASKS_FILE;
+        const GITHUB_TOKEN = 'ВАШ_GITHUB_TOKEN';
+
+        // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
         const tasksList = document.getElementById('tasksList');
 
-        // Загрузка задач при старте
+        // Загрузка задач
         async function loadTasks() {
             try {
-                const response = await fetch(`${WEBAPP_URL}get_tasks?ts=${Date.now()}`);
+                const response = await fetch(TASKS_FILE + '?ts=' + Date.now());
                 if (response.ok) {
-                    tasks = await response.json();
+                    const data = await response.json();
+                    tasks = data.tasks || [];
                     renderTasks();
                 }
             } catch (e) {
@@ -45,15 +92,17 @@
             }
         }
 
+        // Отображение задач
         function renderTasks() {
-            tasksList.innerHTML = tasks.map((task, i) => `
+            tasksList.innerHTML = tasks.map((task, index) => `
                 <div class="task">
                     <span>${task}</span>
-                    <button class="delete-btn" onclick="deleteTask(${i})">×</button>
+                    <button class="delete-btn" onclick="deleteTask(${index})">×</button>
                 </div>
             `).join('');
         }
 
+        // Добавление задачи
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
@@ -63,22 +112,62 @@
             }
         }
 
+        // Удаление задачи
         function deleteTask(index) {
             tasks.splice(index, 1);
             renderTasks();
         }
 
-        tg.MainButton.onClick(() => {
-            tg.sendData(JSON.stringify({tasks: tasks}));
-            tg.showAlert('Задачи сохранены');
-        });
+        // Сохранение задач на GitHub
+        async function saveTasks() {
+            tg.MainButton.showProgress();
+            try {
+                // Сначала получаем текущий SHA файла
+                const getResponse = await fetch(REPO_URL, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                const fileInfo = await getResponse.json();
+                const sha = fileInfo.sha;
+                
+                // Обновляем файл
+                const updateResponse = await fetch(REPO_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Обновление задач',
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify({tasks: tasks})))),
+                        sha: sha
+                    })
+                });
+                
+                if (updateResponse.ok) {
+                    tg.showAlert('✅ Задачи сохранены');
+                } else {
+                    tg.showAlert('⚠️ Ошибка сохранения');
+                }
+            } catch (e) {
+                console.error('Ошибка:', e);
+                tg.showAlert('⚠️ Ошибка соединения');
+            }
+            tg.MainButton.hideProgress();
+        }
 
+        // Обработчики событий
+        tg.MainButton.onClick(saveTasks);
         addButton.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
 
-        // Загружаем задачи при открытии
+        // Загрузка задач при старте
         loadTasks();
     </script>
 </body>
