@@ -1,23 +1,21 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Список задач</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app-screen" class="screen">
-        <h1>Менеджер задач</h1>
-        
-        <div class="task-input">
-            <input type="text" id="new-task-input" placeholder="Новая задача">
-            <button id="add-task-button">Добавить</button>
-        </div>
-        
-        <div id="tasks-list"></div>
+    <h1>Список задач</h1>
+    <div id="task-input">
+        <input type="text" id="new-task" placeholder="Введите новую задачу">
+        <button id="add-task">Добавить</button>
     </div>
+    <ul id="task-list"></ul>
 
     <script src="script.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        Telegram.WebApp.ready();
+    </script>
 </body>
 </html>
