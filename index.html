@@ -1,69 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Мои задачи</title>
     <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
-        #taskInput { width: 70%; padding: 8px; }
-        button { padding: 8px 15px; }
-        ul { list-style: none; padding: 0; }
-        li { margin: 10px 0; display: flex; justify-content: space-between; }
-        .delete-btn { color: red; cursor: pointer; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Мои задачи</h1>
-    <div>
-        <input type="text" id="taskInput" placeholder="Новая задача">
-        <button onclick="addTask()">Добавить</button>
+    <div id="auth-screen" class="screen">
+        <h1>Авторизация</h1>
+        <input type="password" id="password-input" placeholder="Введите пароль">
+        <button id="auth-button">Войти</button>
     </div>
-    <ul id="taskList"></ul>
 
-    <script>
-        // Загрузка задач при открытии
-        window.Telegram.WebApp.ready();
-        loadTasks();
+    <div id="app-screen" class="screen hidden">
+        <h1>Менеджер задач</h1>
+        
+        <div class="task-input">
+            <input type="text" id="new-task-input" placeholder="Новая задача">
+            <button id="add-task-button">Добавить</button>
+        </div>
+        
+        <div id="tasks-list"></div>
+    </div>
 
-        // Загрузить задачи
-        async function loadTasks() {
-            const response = await fetch('/get_tasks');
-            const tasks = await response.json();
-            renderTasks(tasks);
-        }
-
-        // Добавить задачу
-        async function addTask() {
-            const input = document.getElementById('taskInput');
-            const text = input.value.trim();
-            
-            if (text) {
-                await fetch('/add_task', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
-                input.value = '';
-                loadTasks();
-            }
-        }
-
-        // Удалить задачу
-        async function deleteTask(id) {
-            await fetch(`/delete_task/${id}`, { method: 'DELETE' });
-            loadTasks();
-        }
-
-        // Отобразить задачи
-        function renderTasks(tasks) {
-            const list = document.getElementById('taskList');
-            list.innerHTML = tasks.map(task => `
-                <li>
-                    ${task.text}
-                    <span class="delete-btn" onclick="deleteTask(${task.id})">✕</span>
-                </li>
-            `).join('');
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
