@@ -6,7 +6,74 @@
     <title>Task Manager</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Стили остаются такими же, как в предыдущем примере */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f7;
+            margin: 0;
+            padding: 16px;
+            color: #1c1c1e;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        #taskInput {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        #addButton {
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f5f5f7;
+            border-radius: 8px;
+        }
+        .task-text {
+            flex: 1;
+            word-break: break-word;
+        }
+        .delete-btn {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+        }
         .notification {
             position: fixed;
             top: 20px;
@@ -39,7 +106,7 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.enableClosingConfirmation(); // Запрещаем закрытие приложения
+        tg.enableClosingConfirmation();
         
         let tasks = [];
         const taskInput = document.getElementById('taskInput');
@@ -47,7 +114,6 @@
         const tasksList = document.getElementById('tasksList');
         const notification = document.getElementById('notification');
         
-        // Загружаем задачи при открытии
         function loadTasks() {
             const urlParams = new URLSearchParams(window.location.search);
             try {
@@ -97,21 +163,19 @@
                 tasks: tasks
             }));
             showNotification('✅ Задачи сохранены');
-            
-            // Обновляем данные после сохранения
-            setTimeout(() => {
-                tg.sendData(JSON.stringify({action: "refresh"}));
-            }, 500);
+            setTimeout(refreshTasks, 500);
         }
         
-        // Инициализация
+        function refreshTasks() {
+            tg.sendData(JSON.stringify({action: "refresh"}));
+        }
+        
         tg.MainButton.setText('СОХРАНИТЬ').show();
         tg.MainButton.onClick(saveTasks);
         
         addButton.addEventListener('click', addTask);
         taskInput.addEventListener('keypress', (e) => e.key === 'Enter' && addTask());
         
-        // Загружаем задачи при открытии и при возвращении на вкладку
         loadTasks();
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) loadTasks();
