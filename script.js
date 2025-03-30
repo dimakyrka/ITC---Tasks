@@ -7,16 +7,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const addTaskButton = document.getElementById('add-task-button');
     const tasksList = document.getElementById('tasks-list');
 
+    // Конфигурация
+    const PASSWORD = "123"; // Пароль для доступа (измените на свой)
+    const AUTH_KEY = "task_manager_auth";
+    const TASKS_KEY = "task_manager_tasks";
+
     // Проверяем авторизацию при загрузке
     checkAuth();
 
     authButton.addEventListener('click', authenticate);
     addTaskButton.addEventListener('click', addTask);
+    newTaskInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addTask();
+    });
 
     function checkAuth() {
-        // Проверяем куки или localStorage для авторизации
-        const authToken = document.cookie.split('; ').find(row => row.startsWith('auth_token='));
-        if (authToken) {
+        const isAuthenticated = localStorage.getItem(AUTH_KEY) === PASSWORD;
+        if (isAuthenticated) {
             authScreen.classList.add('hidden');
             appScreen.classList.remove('hidden');
             loadTasks();
@@ -25,48 +32,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function authenticate() {
         const password = passwordInput.value;
-        if (!password) return;
-
-        fetch('/auth', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ password: password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                authScreen.classList.add('hidden');
-                appScreen.classList.remove('hidden');
-                loadTasks();
-            } else {
-                alert('Неверный пароль');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Ошибка авторизации');
-        });
+        if (password === PASSWORD) {
+            localStorage.setItem(AUTH_KEY, password);
+            authScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            loadTasks();
+        } else {
+            alert('Неверный пароль');
+        }
     }
 
     function loadTasks() {
-        fetch('/tasks')
-        .then(response => {
-            if (response.status === 401) {
-                // Не авторизован - показываем экран авторизации
-                authScreen.classList.remove('hidden');
-                appScreen.classList.add('hidden');
-                return;
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data && data.tasks) {
-                renderTasks(data.tasks);
-            }
-        })
-        .catch(error => console.error('Error:', error));
+        const tasksData = localStorage.getItem(TASKS_KEY);
+        const tasks = tasksData ? JSON.parse(tasksData) : [];
+        renderTasks(tasks);
+    }
+
+    function saveTasks(tasks) {
+        localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
     }
 
     function renderTasks(tasks) {
@@ -98,74 +81,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = newTaskInput.value.trim();
         if (!text) return;
 
-        fetch('/tasks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'add',
-                text: text
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                newTaskInput.value = '';
-                loadTasks();
-            }
-        })
-        .catch(error => console.error('Error:', error));
+        const tasksData = localStorage.getItem(TASKS_KEY);
+        const tasks = tasksData ? JSON.parse(tasksData) : [];
+        
+        const taskId = Date.now().toString();
+        tasks.push({ id: taskId, text: text });
+        
+        saveTasks(tasks);
+        newTaskInput.value = '';
+        renderTasks(tasks);
     }
 
     function editTask(e) {
         const taskId = e.target.getAttribute('data-id');
-        const taskElement = e.target.closest('.task');
-        const taskText = taskElement.querySelector('.task-text').textContent;
+        const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || [];
+        const task = tasks.find(t => t.id === taskId);
+        
+        if (!task) return;
 
-        const newText = prompt('Редактировать задачу:', taskText);
+        const newText = prompt('Редактировать задачу:', task.text);
         if (newText !== null && newText.trim() !== '') {
-            fetch('/tasks', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'update',
-                    id: taskId,
-                    text: newText.trim()
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadTasks();
-                }
-            })
-            .catch(error => console.error('Error:', error));
+            task.text = newText.trim();
+            saveTasks(tasks);
+            renderTasks(tasks);
         }
     }
 
     function deleteTask(e) {
         const taskId = e.target.getAttribute('data-id');
         if (confirm('Удалить эту задачу?')) {
-            fetch('/tasks', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'delete',
-                    id: taskId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadTasks();
-                }
-            })
-            .catch(error => console.error('Error:', error));
+            const tasks = JSON.parse(localStorage.getItem(TASKS_KEY)) || [];
+            const filteredTasks = tasks.filter(task => task.id !== taskId);
+            saveTasks(filteredTasks);
+            renderTasks(filteredTasks);
         }
     }
 });
