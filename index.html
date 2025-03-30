@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Общие задачи</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -74,6 +74,15 @@
             cursor: pointer;
             margin-left: 8px;
         }
+        .refresh-btn {
+            background: #34c759;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -84,6 +93,7 @@
             <button id="addButton">Добавить</button>
         </div>
         <div class="task-list" id="tasksList"></div>
+        <button class="refresh-btn" id="refreshButton">Обновить список</button>
     </div>
 
     <script>
@@ -91,24 +101,27 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Получаем параметры из URL
+        // Получаем текущие задачи из URL
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // Загружаем задачи
         let tasks = [];
-        try {
-            const tasksJson = urlParams.get('tasks');
-            if (tasksJson) {
-                tasks = JSON.parse(decodeURIComponent(tasksJson));
-                if (!Array.isArray(tasks)) tasks = [];
+        
+        function loadTasks() {
+            try {
+                const tasksJson = urlParams.get('tasks');
+                if (tasksJson) {
+                    tasks = JSON.parse(decodeURIComponent(tasksJson));
+                    if (!Array.isArray(tasks)) tasks = [];
+                    renderTasks();
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки задач:', e);
             }
-        } catch (e) {
-            console.error('Ошибка загрузки задач:', e);
         }
         
         // Элементы интерфейса
         const taskInput = document.getElementById('taskInput');
         const addButton = document.getElementById('addButton');
+        const refreshButton = document.getElementById('refreshButton');
         const tasksList = document.getElementById('tasksList');
         
         // Настройка кнопки сохранения
@@ -147,7 +160,13 @@
             tg.sendData(JSON.stringify({
                 tasks: tasks
             }));
+            tg.close();
         }
+        
+        // Обновление списка задач
+        refreshButton.addEventListener('click', () => {
+            tg.reload();
+        });
         
         // Обработчики событий
         addButton.addEventListener('click', addTask);
@@ -155,8 +174,8 @@
             if (e.key === 'Enter') addTask();
         });
         
-        // Первоначальная отрисовка
-        renderTasks();
+        // Первоначальная загрузка
+        loadTasks();
     </script>
 </body>
 </html>
