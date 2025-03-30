@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Доска задач</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        #task-input { width: 70%; padding: 10px; }
+        #add-btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; }
+        #tasks { margin-top: 20px; list-style: none; padding: 0; }
+        .task { background: #f8f9fa; padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; }
+        .delete-btn { background: #dc3545; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>📌 Доска задач</h1>
+    <div>
+        <input type="text" id="task-input" placeholder="Новая задача...">
+        <button id="add-btn">Добавить</button>
+    </div>
+    <ul id="tasks"></ul>
+
+    <script>
+        const JSONBIN_API_KEY = "ТВОЙ_JSONBIN_MASTER_KEY";
+        const JSONBIN_BIN_ID = "ТВОЙ_JSONBIN_BIN_ID";
+        let tasks = [];
+
+        // Загрузка задач
+        async function loadTasks() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                    headers: { "X-Master-Key": JSONBIN_API_KEY }
+                });
+                const data = await response.json();
+                tasks = data.record || [];
+                renderTasks();
+            } catch (error) {
+                console.error("Ошибка загрузки задач:", error);
+            }
+        }
+
+        // Сохранение задач
+        async function saveTasks() {
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: "PUT",
+                    headers: { "X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json" },
+                    body: JSON.stringify(tasks)
+                });
+            } catch (error) {
+                console.error("Ошибка сохранения задач:", error);
+            }
+        }
+
+        // Отображение задач
+        function renderTasks() {
+            const tasksList = document.getElementById("tasks");
+            tasksList.innerHTML = tasks.map((task, index) => `
+                <li class="task">
+                    ${task}
+                    <button class="delete-btn" data-index="${index}">Удалить</button>
+                </li>
+            `).join("");
+            
+            // Добавляем обработчики удаления
+            document.querySelectorAll(".delete-btn").forEach(btn => {
+                btn.addEventListener("click", () => deleteTask(btn.dataset.index));
+            });
+        }
+
+        // Добавление задачи
+        async function addTask() {
+            const input = document.getElementById("task-input");
+            const taskText = input.value.trim();
+            if (taskText) {
+                tasks.push(taskText);
+                input.value = "";
+                await saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Удаление задачи
+        async function deleteTask(index) {
+            tasks.splice(index, 1);
+            await saveTasks();
+            renderTasks();
+        }
+
+        // Инициализация
+        document.getElementById("add-btn").addEventListener("click", addTask);
+        loadTasks();
+    </script>
+</body>
+</html>
