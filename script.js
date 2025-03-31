@@ -15,6 +15,7 @@ const database = firebase.database();
 const tasksRef = database.ref('tasks');
 
 // Состояния
+let currentEditType = null;
 let currentTab = 'tasks';
 let tasks = [];
 let events = [];
@@ -300,47 +301,62 @@ function saveEdit() {
 }
 
 // Перемещение в архив
-// В функции moveToArchive (изменения)
 function moveToArchive() {
     if (currentEditIndex !== null && currentEditType) {
         tasksRef.transaction((currentData) => {
             currentData = currentData || {};
             currentData.archived = currentData.archived || [];
             
-            let item;
-            if (currentEditType === 'tasks') {
-                item = currentData.tasks[currentEditIndex];
-                item.type = 'task'; // Добавляем тип
-                currentData.tasks.splice(currentEditIndex, 1);
-            } else if (currentEditType === 'events') {
-                item = currentData.events[currentEditIndex];
-                item.type = 'event'; // Добавляем тип
-                currentData.events.splice(currentEditIndex, 1);
-            }
+            // Получаем элемент из соответствующего массива
+            const item = currentData[currentEditType][currentEditIndex];
             
+            // Добавляем тип элемента перед перемещением
+            item.itemType = currentEditType; // 'tasks' или 'events'
+            
+            // Перемещаем в архив
             currentData.archived.unshift(item);
+            
+            // Удаляем из исходного массива
+            currentData[currentEditType].splice(currentEditIndex, 1);
+            
             return currentData;
+        }).then(() => {
+            editModal.classList.remove('active');
+            currentEditIndex = null;
+            currentEditType = null;
+        }).catch((error) => {
+            console.error("Ошибка при перемещении в архив:", error);
         });
-        
-        editModal.classList.remove('active');
     }
 }
 
-
-// Восстановление из архива
-// В функции restoreFromArchive (изменения)
+// Полностью переписываем функцию restoreFromArchive:
 function restoreFromArchive(index) {
     tasksRef.transaction((currentData) => {
-        const item = currentData.archived[index];
-        if (!item.type) item.type = 'task'; // Значение по умолчанию
+        if (!currentData.archived || index >= currentData.archived.length) {
+            return currentData;
+        }
         
-        const targetArray = item.type === 'event' ? 'events' : 'tasks';
+        const archivedItem = currentData.archived[index];
         
-        currentData[targetArray] = currentData[targetArray] || [];
-        currentData[targetArray].unshift(item);
+        // Проверяем наличие типа элемента
+        if (!archivedItem.itemType) {
+            // Если тип не указан, считаем это задачей (для обратной совместимости)
+            archivedItem.itemType = 'tasks';
+        }
+        
+        // Создаем или получаем целевой массив
+        currentData[archivedItem.itemType] = currentData[archivedItem.itemType] || [];
+        
+        // Возвращаем элемент в нужный массив
+        currentData[archivedItem.itemType].unshift(archivedItem);
+        
+        // Удаляем из архива
         currentData.archived.splice(index, 1);
         
         return currentData;
+    }).catch((error) => {
+        console.error("Ошибка при восстановлении из архива:", error);
     });
 }
 
