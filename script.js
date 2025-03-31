@@ -1,4 +1,4 @@
-// Конфигурация Firebase (замените на свои данные!)
+// Конфигурация Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
   authDomain: "itc-tasks.firebaseapp.com",
@@ -19,82 +19,96 @@ let currentEditIndex = null;
 let currentDeleteIndex = null;
 let selectedColor = "#e5e7eb";
 let currentTab = 'events';
-let currentTaskId = null;
 
 // DOM элементы
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 const addEventBtn = document.getElementById('add-event-btn');
 const addTaskBtn = document.getElementById('add-task-btn');
-const editModal = document.getElementById('edit-modal');
-const deleteModal = document.getElementById('delete-modal');
-const editInput = document.getElementById('edit-input');
-const saveEditBtn = document.getElementById('save-edit');
-const cancelEditBtn = document.getElementById('cancel-edit');
-const confirmDeleteBtn = document.getElementById('confirm-delete');
-const cancelDeleteBtn = document.getElementById('cancel-delete');
-const colorOptions = document.querySelectorAll('.color-option');
+const eventInput = document.getElementById('event-input');
+const taskInput = document.getElementById('task-input');
+const eventsList = document.getElementById('events-list');
+const tasksList = document.getElementById('tasks-list');
 
-// Инициализация структуры базы данных
-function initDatabase() {
-  dbRef.once('value').then(snapshot => {
-    if (!snapshot.exists()) {
-      dbRef.set({
-        events: [],
-        tasks: []
-      });
-    }
-  });
+// Инициализация приложения
+function initApp() {
+  setupTabs();
+  setupEventHandlers();
+  setupTaskHandlers();
+  loadData();
+  setupColorPicker();
 }
 
-// Переключение вкладок
-function setupTabs() {
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-      
-      btn.classList.add('active');
-      document.getElementById(btn.dataset.tab).classList.add('active');
-      currentTab = btn.dataset.tab;
-    });
-  });
-}
-
-// Загрузка данных из Firebase
+// Загрузка данных
 function loadData() {
-  dbRef.on('value', snapshot => {
+  dbRef.on('value', (snapshot) => {
     const data = snapshot.val() || { events: [], tasks: [] };
-    renderEvents(data.events);
-    renderTasks(data.tasks);
+    console.log("Data loaded:", data); // Отладка
+    
+    if (data.events) {
+      renderEvents(data.events);
+    }
+    
+    if (data.tasks) {
+      renderTasks(data.tasks);
+    }
   });
 }
 
 // Рендер мероприятий
 function renderEvents(events) {
-  const list = document.getElementById('events-list');
-  list.innerHTML = '';
+  eventsList.innerHTML = '';
   
+  if (!events || events.length === 0) {
+    eventsList.innerHTML = '<p class="empty">Нет мероприятий</p>';
+    return;
+  }
+
   events.forEach((event, index) => {
-    const eventEl = createListItem(event, index, 'events');
-    list.appendChild(eventEl);
+    const eventEl = document.createElement('li');
+    eventEl.className = 'task';
+    eventEl.style.borderLeftColor = event.color || '#e5e7eb';
+    eventEl.dataset.index = index;
+    
+    eventEl.innerHTML = `
+      <div class="task-content">${event.text}</div>
+      <div class="task-actions">
+        <button class="btn-icon edit-btn">✏️</button>
+        <button class="btn-icon delete-btn">🗑️</button>
+      </div>
+    `;
+    
+    eventsList.appendChild(eventEl);
   });
 }
 
-// Рендер задач с подзадачами
+// Рендер задач
 function renderTasks(tasks) {
-  const list = document.getElementById('tasks-list');
-  list.innerHTML = '';
+  tasksList.innerHTML = '';
   
+  if (!tasks || tasks.length === 0) {
+    tasksList.innerHTML = '<p class="empty">Нет задач</p>';
+    return;
+  }
+
   tasks.forEach((task, index) => {
-    const taskEl = createListItem(task, index, 'tasks');
+    const taskEl = document.createElement('li');
+    taskEl.className = 'task';
+    taskEl.style.borderLeftColor = task.color || '#e5e7eb';
+    taskEl.dataset.index = index;
     
-    // Контейнер для подзадач
-    const subtaskContainer = document.createElement('div');
-    subtaskContainer.className = 'subtasks-container';
+    taskEl.innerHTML = `
+      <div class="task-content">${task.text}</div>
+      <div class="task-actions">
+        <button class="btn-icon edit-btn">✏️</button>
+        <button class="btn-icon delete-btn">🗑️</button>
+      </div>
+      <div class="subtasks-container" id="subtasks-${index}"></div>
+    `;
     
     // Рендер подзадач
-    if (task.subtasks) {
+    const subtaskContainer = taskEl.querySelector(`#subtasks-${index}`);
+    if (task.subtasks && task.subtasks.length > 0) {
       task.subtasks.forEach((subtask, subIndex) => {
         const subtaskEl = document.createElement('div');
         subtaskEl.className = 'subtask';
@@ -120,169 +134,93 @@ function renderTasks(tasks) {
     });
     
     subtaskContainer.appendChild(subtaskInput);
-    taskEl.appendChild(subtaskContainer);
-    list.appendChild(taskEl);
-  });
-}
-
-// Создание элемента списка (общее для мероприятий и задач)
-function createListItem(item, index, type) {
-  const el = document.createElement('li');
-  el.className = 'task';
-  el.style.borderLeftColor = item.color || '#e5e7eb';
-  el.dataset.index = index;
-  
-  el.innerHTML = `
-    <div class="task-content">${item.text}</div>
-    <div class="task-actions">
-      <button class="btn-icon edit-btn">✏️</button>
-      <button class="btn-icon delete-btn">🗑️</button>
-    </div>
-  `;
-  
-  // Обработчики для кнопок
-  el.querySelector('.edit-btn').addEventListener('click', () => openEditModal(index, type));
-  el.querySelector('.delete-btn').addEventListener('click', () => openDeleteModal(index, type));
-  
-  return el;
-}
-
-// Добавление мероприятия
-function setupEventHandlers() {
-  addEventBtn.addEventListener('click', () => {
-    const text = document.getElementById('event-input').value.trim();
-    if (text) {
-      dbRef.child('events').transaction(events => {
-        events = events || [];
-        events.unshift({ 
-          text, 
-          color: "#e5e7eb",
-          createdAt: Date.now() 
-        });
-        return events;
-      });
-      document.getElementById('event-input').value = '';
-    }
-  });
-}
-
-// Добавление задачи
-function setupTaskHandlers() {
-  addTaskBtn.addEventListener('click', () => {
-    const text = document.getElementById('task-input').value.trim();
-    if (text) {
-      dbRef.child('tasks').transaction(tasks => {
-        tasks = tasks || [];
-        tasks.unshift({ 
-          text, 
-          color: "#e5e7eb",
-          subtasks: [],
-          createdAt: Date.now()
-        });
-        return tasks;
-      });
-      document.getElementById('task-input').value = '';
-    }
+    tasksList.appendChild(taskEl);
   });
 }
 
 // Добавление подзадачи
 function addSubtask(taskIndex, text) {
   const subtaskRef = dbRef.child(`tasks/${taskIndex}/subtasks`);
-  subtaskRef.transaction(subtasks => {
+  subtaskRef.transaction((subtasks) => {
     subtasks = subtasks || [];
-    subtasks.push({ 
-      text, 
-      checked: false 
-    });
+    subtasks.push({ text, checked: false });
     return subtasks;
   });
 }
 
-// Редактирование элемента
-function openEditModal(index, type) {
-  currentEditIndex = index;
-  currentTab = type;
-  
-  dbRef.child(`${type}/${index}`).once('value').then(snapshot => {
-    const item = snapshot.val();
-    editInput.value = item.text;
-    selectedColor = item.color || '#e5e7eb';
-    updateColorSelection();
-    editModal.classList.add('active');
-  });
-}
-
-// Обновление выбранного цвета
-function updateColorSelection() {
-  colorOptions.forEach(option => {
-    option.classList.toggle('selected', option.dataset.color === selectedColor);
-  });
-}
-
-// Сохранение изменений
-function setupEditModal() {
-  saveEditBtn.addEventListener('click', () => {
-    const newText = editInput.value.trim();
-    if (newText) {
-      dbRef.child(`${currentTab}/${currentEditIndex}`).update({
-        text: newText,
-        color: selectedColor
-      });
-      editModal.classList.remove('active');
-    }
-  });
-}
-
-// Удаление элемента
-function openDeleteModal(index, type) {
-  currentDeleteIndex = index;
-  currentTab = type;
-  deleteModal.classList.add('active');
-}
-
-function setupDeleteModal() {
-  confirmDeleteBtn.addEventListener('click', () => {
-    dbRef.child(currentTab).transaction(items => {
-      items.splice(currentDeleteIndex, 1);
-      return items;
+// Инициализация вкладок
+function setupTabs() {
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+      currentTab = btn.dataset.tab;
     });
-    deleteModal.classList.remove('active');
   });
+}
+
+// Обработчики мероприятий
+function setupEventHandlers() {
+  addEventBtn.addEventListener('click', addEvent);
+  eventInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addEvent();
+  });
+}
+
+function addEvent() {
+  const text = eventInput.value.trim();
+  if (text) {
+    dbRef.child('events').transaction((events) => {
+      events = events || [];
+      events.unshift({ 
+        text, 
+        color: "#e5e7eb",
+        createdAt: Date.now() 
+      });
+      return events;
+    });
+    eventInput.value = '';
+  }
+}
+
+// Обработчики задач
+function setupTaskHandlers() {
+  addTaskBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+}
+
+function addTask() {
+  const text = taskInput.value.trim();
+  if (text) {
+    dbRef.child('tasks').transaction((tasks) => {
+      tasks = tasks || [];
+      tasks.unshift({ 
+        text, 
+        color: "#e5e7eb",
+        subtasks: [],
+        createdAt: Date.now()
+      });
+      return tasks;
+    });
+    taskInput.value = '';
+  }
 }
 
 // Выбор цвета
 function setupColorPicker() {
-  colorOptions.forEach(option => {
+  document.querySelectorAll('.color-option').forEach(option => {
     option.addEventListener('click', () => {
       selectedColor = option.dataset.color;
-      updateColorSelection();
+      document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === selectedColor);
+      });
     });
   });
-}
-
-// Закрытие модалок
-function setupModalClosers() {
-  cancelEditBtn.addEventListener('click', () => editModal.classList.remove('active'));
-  cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.remove('active'));
-  
-  window.addEventListener('click', (e) => {
-    if (e.target === editModal) editModal.classList.remove('active');
-    if (e.target === deleteModal) deleteModal.classList.remove('active');
-  });
-}
-
-// Инициализация приложения
-function initApp() {
-  initDatabase();
-  setupTabs();
-  loadData();
-  setupEventHandlers();
-  setupTaskHandlers();
-  setupEditModal();
-  setupDeleteModal();
-  setupColorPicker();
-  setupModalClosers();
 }
 
 // Запуск приложения
