@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ITC Tasks</title>
+    <title>ITC Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
@@ -40,11 +40,12 @@
         }
 
         .tab {
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
             cursor: pointer;
-            transition: 0.2s;
+            background: var(--card);
             border: 1px solid var(--border);
+            transition: 0.2s;
         }
 
         .tab.active {
@@ -63,7 +64,7 @@
             flex: 1;
             padding: 0.75rem;
             border: 1px solid var(--border);
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             font-size: 1rem;
             outline: none;
         }
@@ -72,36 +73,53 @@
             background: var(--primary);
             color: white;
             border: none;
-            padding: 0 1rem;
-            border-radius: 0.5rem;
+            padding: 0 1.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-btn:hover {
+            opacity: 0.9;
+        }
+
+        .item {
+            background: var(--card);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             cursor: pointer;
         }
 
-        .task {
-            background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: var(--shadow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .task-content {
+        .item-content {
             flex-grow: 1;
         }
 
-        .task-actions {
+        .item-actions {
             display: flex;
             gap: 0.5rem;
+            opacity: 0;
+            transition: 0.2s;
         }
 
-        .btn-icon {
+        .item:hover .item-actions {
+            opacity: 1;
+        }
+
+        .icon-btn {
             background: none;
             border: none;
             cursor: pointer;
             padding: 0.25rem;
+            color: var(--text-light);
+        }
+
+        .icon-btn:hover {
+            color: var(--text);
         }
 
         .modal {
@@ -114,6 +132,7 @@
             display: none;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
         }
 
         .modal.active {
@@ -124,22 +143,18 @@
             background: white;
             padding: 1.5rem;
             border-radius: 1rem;
-            width: 90%;
+            width: 100%;
             max-width: 400px;
         }
 
         .subtask-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0;
-        }
-
-        .subtask-input {
-            flex-grow: 1;
-            display: flex;
-            gap: 0.5rem;
-            margin: 1rem 0;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
@@ -152,7 +167,7 @@
     <!-- Задачи -->
     <div class="content active" data-content="tasks">
         <div class="task-form">
-            <input type="text" id="task-input" placeholder="Новая задача...">
+            <input type="text" id="task-input" placeholder="Новая задача">
             <button class="add-btn" id="add-task">+</button>
         </div>
         <div id="tasks-list"></div>
@@ -161,7 +176,7 @@
     <!-- Мероприятия -->
     <div class="content" data-content="events">
         <div class="task-form">
-            <input type="text" id="event-input" placeholder="Новое мероприятие...">
+            <input type="text" id="event-input" placeholder="Новое мероприятие">
             <button class="add-btn" id="add-event">+</button>
         </div>
         <div id="events-list"></div>
@@ -171,17 +186,28 @@
     <div class="modal" id="subtasks-modal">
         <div class="modal-content">
             <h3 id="task-title"></h3>
-            <div class="subtask-input">
-                <input type="text" id="subtask-input" placeholder="Добавить подзадачу...">
+            <div class="task-form">
+                <input type="text" id="subtask-input" placeholder="Добавить подзадачу">
                 <button class="add-btn" id="add-subtask">+</button>
             </div>
             <div id="subtasks-list"></div>
-            <button class="add-btn" style="margin-top: 1rem;" onclick="document.getElementById('subtasks-modal').classList.remove('active')">Закрыть</button>
+            <button class="add-btn" onclick="closeModal('subtasks-modal')" style="margin-top:1rem">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <h3>Редактирование</h3>
+            <input type="text" id="edit-input" class="task-input">
+            <div class="task-form" style="margin-top:1rem">
+                <button class="add-btn" onclick="saveEdit()">Сохранить</button>
+                <button class="add-btn" onclick="closeModal('edit-modal')">Отмена</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
             authDomain: "itc-tasks.firebaseapp.com",
@@ -192,12 +218,13 @@
             appId: "1:736776837496:web:27341fe39226d1b8d0108d"
         };
 
-        // Инициализация Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const tasksRef = db.ref('tasks');
         const eventsRef = db.ref('events');
 
+        let currentEditId = null;
+        let currentType = null;
         let currentTaskId = null;
 
         // Рендер задач
@@ -205,17 +232,18 @@
             const list = document.getElementById('tasks-list');
             list.innerHTML = '';
             
-            tasks.forEach(task => {
-                const div = document.createElement('div');
-                div.className = 'task';
-                div.innerHTML = `
-                    <div class="task-content">${task.text}</div>
-                    <div class="task-actions">
-                        <button class="btn-icon" onclick="openSubtasks('${task.id}')">✓</button>
-                        <button class="btn-icon" onclick="deleteTask('${task.id}')">×</button>
+            Object.entries(tasks).forEach(([id, task]) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <div class="item-content">${task.text}</div>
+                    <div class="item-actions">
+                        <button class="icon-btn" onclick="openEdit('tasks','${id}','${task.text}')">✎</button>
+                        <button class="icon-btn" onclick="deleteItem('tasks','${id}')">×</button>
                     </div>
                 `;
-                list.appendChild(div);
+                item.addEventListener('click', () => openSubtasks(id, task));
+                list.appendChild(item);
             });
         }
 
@@ -224,109 +252,122 @@
             const list = document.getElementById('events-list');
             list.innerHTML = '';
             
-            events.forEach(event => {
-                const div = document.createElement('div');
-                div.className = 'task';
-                div.innerHTML = `
-                    <div class="task-content">${event.text}</div>
-                    <div class="task-actions">
-                        <button class="btn-icon" onclick="deleteEvent('${event.id}')">×</button>
+            Object.entries(events).forEach(([id, event]) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <div class="item-content">${event.text}</div>
+                    <div class="item-actions">
+                        <button class="icon-btn" onclick="openEdit('events','${id}','${event.text}')">✎</button>
+                        <button class="icon-btn" onclick="deleteItem('events','${id}')">×</button>
                     </div>
                 `;
-                list.appendChild(div);
+                list.appendChild(item);
             });
         }
 
-        // Открытие подзадач
-        function openSubtasks(taskId) {
-            currentTaskId = taskId;
-            const task = tasksRef.child(taskId);
-            task.once('value', snap => {
-                const data = snap.val();
-                document.getElementById('task-title').textContent = data.text;
-                renderSubtasks(data.subtasks || []);
-                document.getElementById('subtasks-modal').classList.add('active');
-            });
+        // Подзадачи
+        function openSubtasks(id, task) {
+            currentTaskId = id;
+            document.getElementById('task-title').textContent = task.text;
+            renderSubtasks(task.subtasks || {});
+            openModal('subtasks-modal');
         }
 
-        // Рендер подзадач
         function renderSubtasks(subtasks) {
             const list = document.getElementById('subtasks-list');
             list.innerHTML = '';
             
-            subtasks.forEach((subtask, index) => {
+            Object.entries(subtasks).forEach(([id, subtask]) => {
                 const div = document.createElement('div');
                 div.className = 'subtask-item';
                 div.innerHTML = `
                     <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
-                        onchange="toggleSubtask(${index})">
-                    <span>${subtask.text}</span>
+                        onchange="toggleSubtask('${id}')">
+                    <div style="flex-grow:1">${subtask.text}</div>
+                    <button class="icon-btn" onclick="deleteSubtask('${id}')">×</button>
                 `;
                 list.appendChild(div);
             });
         }
 
-        // Добавление задачи
+        // Общие функции
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openEdit(type, id, text) {
+            currentType = type;
+            currentEditId = id;
+            document.getElementById('edit-input').value = text;
+            openModal('edit-modal');
+        }
+
+        function saveEdit() {
+            const newText = document.getElementById('edit-input').value.trim();
+            if (newText && currentEditId) {
+                const ref = currentType === 'tasks' ? tasksRef : eventsRef;
+                ref.child(currentEditId).update({ text: newText });
+                closeModal('edit-modal');
+            }
+        }
+
+        function deleteItem(type, id) {
+            const ref = type === 'tasks' ? tasksRef : eventsRef;
+            ref.child(id).remove();
+        }
+
+        // Обработчики событий
         document.getElementById('add-task').addEventListener('click', () => {
             const text = document.getElementById('task-input').value.trim();
             if (text) {
-                const newTask = {
-                    id: Date.now().toString(),
+                tasksRef.push({
                     text: text,
-                    subtasks: []
-                };
-                tasksRef.child(newTask.id).set(newTask);
+                    subtasks: {},
+                    createdAt: Date.now()
+                });
                 document.getElementById('task-input').value = '';
             }
         });
 
-        // Добавление мероприятия
         document.getElementById('add-event').addEventListener('click', () => {
             const text = document.getElementById('event-input').value.trim();
             if (text) {
-                const newEvent = {
-                    id: Date.now().toString(),
-                    text: text
-                };
-                eventsRef.child(newEvent.id).set(newEvent);
+                eventsRef.push({
+                    text: text,
+                    createdAt: Date.now()
+                });
                 document.getElementById('event-input').value = '';
             }
         });
 
-        // Добавление подзадачи
         document.getElementById('add-subtask').addEventListener('click', () => {
             const text = document.getElementById('subtask-input').value.trim();
             if (text && currentTaskId) {
-                const newSubtask = {
+                tasksRef.child(currentTaskId).child('subtasks').push({
                     text: text,
                     completed: false
-                };
-                tasksRef.child(currentTaskId).child('subtasks').transaction(subtasks => {
-                    return [...(subtasks || []), newSubtask];
                 });
                 document.getElementById('subtask-input').value = '';
             }
         });
 
-        // Удаление задачи
-        function deleteTask(taskId) {
-            tasksRef.child(taskId).remove();
-        }
-
-        // Удаление мероприятия
-        function deleteEvent(eventId) {
-            eventsRef.child(eventId).remove();
-        }
-
-        // Переключение подзадачи
-        function toggleSubtask(index) {
-            tasksRef.child(currentTaskId).child('subtasks').transaction(subtasks => {
-                subtasks[index].completed = !subtasks[index].completed;
-                return subtasks;
+        function toggleSubtask(subtaskId) {
+            tasksRef.child(currentTaskId).child('subtasks').child(subtaskId).transaction(subtask => {
+                subtask.completed = !subtask.completed;
+                return subtask;
             });
         }
 
-        // Переключение вкладок
+        function deleteSubtask(subtaskId) {
+            tasksRef.child(currentTaskId).child('subtasks').child(subtaskId).remove();
+        }
+
+        // Инициализация
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab, .content').forEach(el => {
@@ -337,9 +378,8 @@
             });
         });
 
-        // Инициализация данных
-        tasksRef.on('value', snap => renderTasks(Object.values(snap.val() || {})));
-        eventsRef.on('value', snap => renderEvents(Object.values(snap.val() || {})));
+        tasksRef.on('value', snap => renderTasks(snap.val() || {}));
+        eventsRef.on('value', snap => renderEvents(snap.val() || {}));
     </script>
 </body>
 </html>
