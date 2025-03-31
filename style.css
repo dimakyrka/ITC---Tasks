@@ -448,3 +448,25 @@ h1 {
 .subtask-item {
     animation: fadeIn 0.3s ease-out forwards;
 }
+
+#subtasks-modal {
+    z-index: 1000;
+}
+
+#subtasks-modal .modal-content {
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#subtasks-list {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.subtasks-form {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
