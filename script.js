@@ -196,6 +196,12 @@ function createTaskElement(item, index, type) {
             openSubtasksModal(index);
         });
     }
+    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+    // Проверяем, что клик не по кнопке редактирования/удаления
+    if (!e.target.closest('.task-actions')) {
+        openSubtasksModal(index);
+    }
+    });
     
     taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -417,14 +423,31 @@ function openSubtasksModal(index) {
     subtasksTitle.textContent = task.text;
     subtasksList.innerHTML = '';
     
+    // Очищаем поле ввода
+    subtaskInput.value = '';
+    
+    // Загружаем подзадачи
     if (task.subtasks && task.subtasks.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
             addSubtaskToDOM(subtask, subIndex);
         });
     }
     
+    // Показываем модальное окно
     subtasksModal.classList.add('active');
+    
+    // Фокусируемся на поле ввода
     subtaskInput.focus();
+    
+    // Добавляем обработчик закрытия по ESC
+    document.addEventListener('keydown', handleEscKey);
+}
+
+function handleEscKey(e) {
+    if (e.key === 'Escape') {
+        subtasksModal.classList.remove('active');
+        document.removeEventListener('keydown', handleEscKey);
+    }
 }
 
 function addSubtaskToDOM(subtask, index) {
@@ -444,6 +467,7 @@ function addSubtaskToDOM(subtask, index) {
 
 closeSubtasksBtn.addEventListener('click', () => {
     subtasksModal.classList.remove('active');
+    document.removeEventListener('keydown', handleEscKey);
 });
 
 addSubtaskBtn.addEventListener('click', addSubtask);
