@@ -82,10 +82,10 @@ function renderEvents(events) {
   });
 }
 
-// Рендер задач
 function renderTasks(tasks) {
+  const tasksList = document.getElementById('tasks-list');
   tasksList.innerHTML = '';
-  
+
   if (!tasks || tasks.length === 0) {
     tasksList.innerHTML = '<p class="empty">Нет задач</p>';
     return;
@@ -96,7 +96,7 @@ function renderTasks(tasks) {
     taskEl.className = 'task';
     taskEl.style.borderLeftColor = task.color || '#e5e7eb';
     taskEl.dataset.index = index;
-    
+
     taskEl.innerHTML = `
       <div class="task-content">${task.text}</div>
       <div class="task-actions">
@@ -105,7 +105,7 @@ function renderTasks(tasks) {
       </div>
       <div class="subtasks-container" id="subtasks-${index}"></div>
     `;
-    
+
     // Рендер подзадач
     const subtaskContainer = taskEl.querySelector(`#subtasks-${index}`);
     if (task.subtasks && task.subtasks.length > 0) {
@@ -113,14 +113,14 @@ function renderTasks(tasks) {
         const subtaskEl = document.createElement('div');
         subtaskEl.className = 'subtask';
         subtaskEl.innerHTML = `
-          <input type="checkbox" ${subtask.checked ? 'checked' : ''}
+          <input type="checkbox" ${subtask.checked ? 'checked' : ''} 
             data-task-index="${index}" data-subtask-index="${subIndex}">
           <span>${subtask.text}</span>
         `;
         subtaskContainer.appendChild(subtaskEl);
       });
     }
-    
+
     // Поле для новой подзадачи
     const subtaskInput = document.createElement('input');
     subtaskInput.type = 'text';
