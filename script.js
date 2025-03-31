@@ -424,6 +424,8 @@ cancelDeleteBtn.addEventListener('click', () => {
 
 // Подзадачи
 function openSubtasksModal(index) {
+    console.log('Opening subtasks for task index:', index);
+    
     if (index === null || index === undefined || !tasks[index]) {
         console.error('Invalid task index:', index);
         return;
@@ -443,6 +445,7 @@ function openSubtasksModal(index) {
     
     subtasksModal.classList.add('active');
     subtaskInput.focus();
+    document.addEventListener('keydown', handleEscKey);
 }
 
 function addSubtaskToDOM(subtask, index) {
@@ -527,7 +530,14 @@ closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
 
 function closeSubtasksModal() {
     subtasksModal.classList.remove('active');
+    document.removeEventListener('keydown', handleEscKey);
     currentTaskWithSubtasks = null;
+}
+
+function handleEscKey(e) {
+    if (e.key === 'Escape') {
+        closeSubtasksModal();
+    }
 }
 
 // Drag and Drop
@@ -577,16 +587,9 @@ function swapItems(fromIndex, toIndex) {
 
 // Закрытие модалок
 window.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-        editModal.classList.remove('active');
-    }
-    if (e.target === deleteModal) {
-        deleteModal.classList.remove('active');
-    }
     if (e.target === subtasksModal) {
         closeSubtasksModal();
     }
-});
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
