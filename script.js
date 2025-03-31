@@ -30,13 +30,16 @@ const taskInput = document.getElementById('task-input');
 const addBtn = document.getElementById('add-btn');
 const tasksList = document.getElementById('tasks');
 const eventsList = document.getElementById('events');
+const archiveList = document.getElementById('archive-list');
 const emptyTasks = document.getElementById('empty-tasks');
 const emptyEvents = document.getElementById('empty-events');
+const emptyArchive = document.getElementById('empty-archive');
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 const editModal = document.getElementById('edit-modal');
 const editInput = document.getElementById('edit-input');
 const saveEditBtn = document.getElementById('save-edit');
+const archiveBtn = document.getElementById('archive-btn');
 const cancelEditBtn = document.getElementById('cancel-edit');
 const colorOptions = document.querySelectorAll('#edit-modal .color-option');
 const deleteModal = document.getElementById('delete-modal');
@@ -48,6 +51,11 @@ const subtasksList = document.getElementById('subtasks-list');
 const subtaskInput = document.getElementById('subtask-input');
 const addSubtaskBtn = document.getElementById('add-subtask-btn');
 const closeSubtasksBtn = document.getElementById('close-subtasks');
+const taskForm = document.getElementById('task-form');
+
+// Инициализация
+updateInputPlaceholder();
+toggleInputField();
 
 // Загрузка данных из Firebase
 tasksRef.on('value', (snapshot) => {
@@ -58,190 +66,96 @@ tasksRef.on('value', (snapshot) => {
 
     renderTasks();
     renderEvents();
-    if (currentTab === 'archive') {
-        renderArchive();
-    }
+    if (currentTab === 'archive') renderArchive();
     updateEmptyStates();
 });
+
+// Функция обновления плейсхолдера
+function updateInputPlaceholder() {
+    taskInput.placeholder = currentTab === 'tasks' 
+        ? 'Добавьте новую задачу...' 
+        : 'Добавьте новое мероприятие...';
+}
+
+// Функция скрытия поля ввода в архиве
+function toggleInputField() {
+    taskForm.style.display = currentTab === 'archive' ? 'none' : 'flex';
+}
 
 // Отрисовка задач
 function renderTasks() {
     tasksList.innerHTML = '';
     
     tasks.forEach((task, index) => {
-        const taskEl = document.createElement('li');
-        taskEl.className = 'task';
-        taskEl.style.borderLeftColor = task.color || '#e5e7eb';
-        taskEl.setAttribute('draggable', 'true');
-        taskEl.dataset.index = index;
-        
-        taskEl.innerHTML = `
-            <div class="task-content">${task.text}</div>
-            <div class="task-actions">
-                <button class="btn-icon edit-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                </button>
-                <button class="btn-icon delete-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-        
-        // Обработчик клика по задаче
-        taskEl.querySelector('.task-content').addEventListener('click', () => {
-            openSubtasksModal(index);
-        });
-        
-        // Обработчики для кнопок
-        taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openEditModal(index, 'tasks');
-        });
-        
-        taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openDeleteModal(index, 'tasks');
-        });
-        
-        // Drag and drop
-        taskEl.addEventListener('dragstart', handleDragStart);
-        taskEl.addEventListener('dragover', handleDragOver);
-        taskEl.addEventListener('drop', handleDrop);
-        taskEl.addEventListener('dragend', handleDragEnd);
-        
+        const taskEl = createTaskElement(task, index, 'tasks');
         tasksList.appendChild(taskEl);
     });
     
-    updateEmptyStates();
+    emptyTasks.style.display = tasks.length === 0 ? 'block' : 'none';
 }
-
-document.getElementById('archive-btn').addEventListener('click', () => {
-    if (currentEditIndex !== null) {
-        const type = editModal.dataset.editType;
-        archiveItem(currentEditIndex, type);
-        editModal.classList.remove('active');
-    }
-});
 
 // Отрисовка мероприятий
 function renderEvents() {
     eventsList.innerHTML = '';
     
     events.forEach((event, index) => {
-        const eventEl = document.createElement('li');
-        eventEl.className = 'task';
-        eventEl.style.borderLeftColor = event.color || '#e5e7eb';
-        eventEl.setAttribute('draggable', 'true');
-        eventEl.dataset.index = index;
-        
-        eventEl.innerHTML = `
-            <div class="task-content">${event.text}</div>
-            <div class="task-actions">
-                <button class="btn-icon edit-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                </button>
-                <button class="btn-icon delete-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-        
-        // Обработчики для кнопок
-        eventEl.querySelector('.edit-btn').addEventListener('click', () => {
-            openEditModal(index, 'events');
-        });
-        
-        eventEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openDeleteModal(index, 'events');
-        });
-        
-        // Drag and drop
-        eventEl.addEventListener('dragstart', handleDragStart);
-        eventEl.addEventListener('dragover', handleDragOver);
-        eventEl.addEventListener('drop', handleDrop);
-        eventEl.addEventListener('dragend', handleDragEnd);
-        
+        const eventEl = createTaskElement(event, index, 'events');
         eventsList.appendChild(eventEl);
     });
     
-    updateEmptyStates();
+    emptyEvents.style.display = events.length === 0 ? 'block' : 'none';
 }
 
-// Обновление пустых состояний
-function updateEmptyStates() {
-    emptyTasks.classList.toggle('active', tasks.length === 0);
-    emptyEvents.classList.toggle('active', events.length === 0);
-}
-
-// Добавим обработчик переключения вкладки архива
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        updateInputPlaceholder();
-        if (btn.dataset.tab === 'archive') {
-            renderArchive();
-            toggleInputField(); // Новый вызов для скрытия поля в архиве
-
-        }
+// Создание элемента задачи/мероприятия
+function createTaskElement(item, index, type) {
+    const element = document.createElement('li');
+    element.className = `task ${type}-item`;
+    element.style.borderLeftColor = item.color || '#e5e7eb';
+    element.setAttribute('draggable', 'true');
+    element.dataset.index = index;
+    
+    element.innerHTML = `
+        <div class="task-content">${item.text}</div>
+        <div class="task-actions">
+            <button class="btn-icon edit-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>
+            <button class="btn-icon delete-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    element.querySelector('.task-content').addEventListener('click', () => {
+        if (type === 'tasks') openSubtasksModal(index);
     });
-});
-updateInputPlaceholder();
-
-// Функция архивирования задачи
-function archiveItem(index, type) {
-    tasksRef.transaction((currentData) => {
-        if (!currentData) currentData = { tasks: [], events: [], archive: [] };
-        
-        const itemToArchive = type === 'tasks' 
-            ? { ...currentData.tasks[index], type: 'task' }
-            : { ...currentData.events[index], type: 'event' };
-        
-        itemToArchive.archivedAt = Date.now();
-        
-        currentData.archive = currentData.archive || [];
-        currentData.archive.unshift(itemToArchive);
-        
-        if (type === 'tasks') {
-            currentData.tasks.splice(index, 1);
-        } else {
-            currentData.events.splice(index, 1);
-        }
-        
-        return currentData;
+    
+    element.querySelector('.edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(index, type);
     });
+    
+    element.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, type);
+    });
+    
+    element.addEventListener('dragstart', handleDragStart);
+    element.addEventListener('dragover', handleDragOver);
+    element.addEventListener('drop', handleDrop);
+    element.addEventListener('dragend', handleDragEnd);
+    
+    return element;
 }
 
-
-// Функция восстановления из архива
-function restoreTask(index) {
-    tasksRef.transaction((currentData) => {
-        const taskToRestore = currentData.archive[index];
-        
-        // Возвращаем в задачи
-        currentData.tasks = currentData.tasks || [];
-        currentData.tasks.unshift(taskToRestore);
-        
-        // Удаляем из архива
-        currentData.archive.splice(index, 1);
-        
-        return currentData;
-    });
-}
-
+// Отрисовка архива
 function renderArchive() {
-    const archiveList = document.getElementById('archive-list');
     archiveList.innerHTML = '';
     
     archive.forEach((item, index) => {
@@ -264,16 +178,43 @@ function renderArchive() {
         
         itemEl.querySelector('.restore-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            restoreItem(index, item.type);
+            restoreItem(index);
         });
         
         archiveList.appendChild(itemEl);
     });
+    
+    emptyArchive.style.display = archive.length === 0 ? 'block' : 'none';
 }
 
-function restoreItem(index, type) {
+// Архивация элемента
+function archiveItem(index, type) {
+    tasksRef.transaction((currentData) => {
+        if (!currentData) currentData = { tasks: [], events: [], archive: [] };
+        
+        const itemToArchive = type === 'tasks' 
+            ? { ...currentData.tasks[index], type: 'task' }
+            : { ...currentData.events[index], type: 'event' };
+        
+        itemToArchive.archivedAt = Date.now();
+        currentData.archive = currentData.archive || [];
+        currentData.archive.unshift(itemToArchive);
+        
+        if (type === 'tasks') {
+            currentData.tasks.splice(index, 1);
+        } else {
+            currentData.events.splice(index, 1);
+        }
+        
+        return currentData;
+    });
+}
+
+// Восстановление из архива
+function restoreItem(index) {
     tasksRef.transaction((currentData) => {
         const itemToRestore = currentData.archive[index];
+        const type = itemToRestore.type || 'task';
         
         if (type === 'task') {
             currentData.tasks = currentData.tasks || [];
@@ -288,21 +229,6 @@ function restoreItem(index, type) {
     });
 }
 
-// Обновим обработчик завершения задачи
-function toggleTaskCompletion(index) {
-    tasksRef.transaction((currentData) => {
-        const task = currentData.tasks[index];
-        task.completed = !task.completed;
-        
-        if (task.completed) {
-            // Автоматическое архивирование при завершении
-            archiveTask(index);
-        }
-        
-        return currentData;
-    });
-}
-
 // Переключение вкладок
 tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -311,19 +237,14 @@ tabBtns.forEach(btn => {
         
         btn.classList.add('active');
         currentTab = btn.dataset.tab;
+        document.getElementById(`${currentTab}-tab`).classList.add('active');
         
-        const activeTab = document.getElementById(`${currentTab}-tab`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-        }
-        
-        if (currentTab === 'archive') {
-            renderArchive();
-        }
+        updateInputPlaceholder();
+        toggleInputField();
     });
 });
 
-// Добавление задачи/мероприятия
+// Добавление элемента
 addBtn.addEventListener('click', addItem);
 taskInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addItem();
@@ -339,137 +260,42 @@ function addItem() {
             subtasks: []
         };
         
-        if (currentTab === 'tasks') {
-            tasksRef.transaction((currentData) => {
-                currentData = currentData || {};
+        tasksRef.transaction((currentData) => {
+            currentData = currentData || {};
+            if (currentTab === 'tasks') {
                 currentData.tasks = currentData.tasks || [];
                 currentData.tasks.unshift(newItem);
-                return currentData;
-            });
-        } else {
-            tasksRef.transaction((currentData) => {
-                currentData = currentData || {};
+            } else {
                 currentData.events = currentData.events || [];
                 currentData.events.unshift(newItem);
-                return currentData;
-            });
-        }
+            }
+            return currentData;
+        });
         
         taskInput.value = '';
     }
 }
 
-
-function updateInputPlaceholder() {
-    const placeholderText = currentTab === 'tasks' 
-        ? 'Добавьте новую задачу...' 
-        : 'Добавьте новое мероприятие...';
-    taskInput.placeholder = placeholderText;
-}
-
-function toggleInputField() {
-    const taskForm = document.getElementById('task-form');
-    const archiveTab = document.getElementById('archive-tab');
-    
-    if (currentTab === 'archive') {
-        if (taskForm.parentNode === archiveTab) {
-            document.body.insertBefore(taskForm, archiveTab);
-        }
-    } else {
-        const activeTab = document.getElementById(`${currentTab}-tab');
-        if (taskForm.parentNode !== activeTab) {
-            activeTab.insertBefore(taskForm, activeTab.firstChild);
-        }
-    }
-}
-
-// Редактирование
+// Редактирование элемента
 function openEditModal(index, type) {
     currentEditIndex = index;
     const item = type === 'tasks' ? tasks[index] : events[index];
     editInput.value = item.text;
     selectedColor = item.color || '#e5e7eb';
     
-    // Показываем/скрываем кнопку архива для мероприятий
-    const archiveBtn = document.getElementById('archive-btn');
-    archiveBtn.style.display = type === 'tasks' ? 'block' : 'block';
-    
+    archiveBtn.style.display = 'block';
     updateColorSelection();
     editModal.classList.add('active');
     editInput.focus();
     editModal.dataset.editType = type;
 }
 
-function updateColorSelection() {
-    colorOptions.forEach(option => {
-        option.classList.toggle('selected', option.dataset.color === selectedColor);
-    });
-}
-
-colorOptions.forEach(option => {
-    option.addEventListener('click', () => {
-        selectedColor = option.dataset.color;
-        updateColorSelection();
-    });
-});
-
-saveEditBtn.addEventListener('click', saveEdit);
-editInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') saveEdit();
-});
-
-cancelEditBtn.addEventListener('click', () => {
-    editModal.classList.remove('active');
-});
-
-function saveEdit() {
-    const newText = editInput.value.trim();
-    if (newText && currentEditIndex !== null) {
+archiveBtn.addEventListener('click', () => {
+    if (currentEditIndex !== null) {
         const type = editModal.dataset.editType;
-        
-        tasksRef.transaction((currentData) => {
-            if (type === 'tasks') {
-                currentData.tasks[currentEditIndex].text = newText;
-                currentData.tasks[currentEditIndex].color = selectedColor;
-            } else {
-                currentData.events[currentEditIndex].text = newText;
-                currentData.events[currentEditIndex].color = selectedColor;
-            }
-            return currentData;
-        });
-        
+        archiveItem(currentEditIndex, type);
         editModal.classList.remove('active');
     }
-}
-
-// Удаление
-function openDeleteModal(index, type) {
-    currentDeleteIndex = index;
-    deleteModal.dataset.deleteType = type;
-    deleteModal.classList.add('active');
-}
-
-confirmDeleteBtn.addEventListener('click', () => {
-    if (currentDeleteIndex !== null) {
-        const type = deleteModal.dataset.deleteType;
-        
-        tasksRef.transaction((currentData) => {
-            if (type === 'tasks') {
-                currentData.tasks.splice(currentDeleteIndex, 1);
-            } else {
-                currentData.events.splice(currentDeleteIndex, 1);
-            }
-            return currentData;
-        });
-        
-        deleteModal.classList.remove('active');
-        currentDeleteIndex = null;
-    }
-});
-
-cancelDeleteBtn.addEventListener('click', () => {
-    deleteModal.classList.remove('active');
-    currentDeleteIndex = null;
 });
 
 // Подзадачи
@@ -479,22 +305,9 @@ function openSubtasksModal(index) {
     subtasksTitle.textContent = task.text;
     subtasksList.innerHTML = '';
     
-    // Загружаем подзадачи
-    if (task.subtasks && task.subtasks.length > 0) {
+    if (task.subtasks?.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
-            const subtaskEl = document.createElement('li');
-            subtaskEl.className = 'subtask-item';
-            subtaskEl.innerHTML = `
-                <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${subIndex}">
-                <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
-            `;
-            
-            // Обработчик изменения состояния подзадачи
-            subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', (e) => {
-                toggleSubtaskCompletion(e.target.dataset.index);
-            });
-            
-            subtasksList.appendChild(subtaskEl);
+            addSubtaskToDOM(subtask, subIndex);
         });
     }
     
@@ -502,14 +315,20 @@ function openSubtasksModal(index) {
     subtaskInput.focus();
 }
 
-closeSubtasksBtn.addEventListener('click', () => {
-    subtasksModal.classList.remove('active');
-});
-
-addSubtaskBtn.addEventListener('click', addSubtask);
-subtaskInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addSubtask();
-});
+function addSubtaskToDOM(subtask, index) {
+    const subtaskEl = document.createElement('li');
+    subtaskEl.className = 'subtask-item';
+    subtaskEl.innerHTML = `
+        <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${index}">
+        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
+    `;
+    
+    subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', (e) => {
+        toggleSubtaskCompletion(e.target.dataset.index);
+    });
+    
+    subtasksList.appendChild(subtaskEl);
+}
 
 function addSubtask() {
     const text = subtaskInput.value.trim();
@@ -519,32 +338,13 @@ function addSubtask() {
             completed: false
         };
         
-        // Оптимистичное обновление интерфейса
-        const subtaskEl = document.createElement('li');
-        subtaskEl.className = 'subtask-item';
-        subtaskEl.innerHTML = `
-            <input type="checkbox" class="subtask-checkbox" data-index="${tasks[currentTaskWithSubtasks].subtasks?.length || 0}">
-            <span class="subtask-text">${text}</span>
-        `;
-        subtasksList.appendChild(subtaskEl);
-        
+        addSubtaskToDOM(newSubtask, tasks[currentTaskWithSubtasks].subtasks?.length || 0);
         subtaskInput.value = '';
         
-        // Обновление в Firebase
         tasksRef.transaction((currentData) => {
             currentData.tasks[currentTaskWithSubtasks].subtasks = 
                 currentData.tasks[currentTaskWithSubtasks].subtasks || [];
             currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
-            return currentData;
-        });
-    }
-}
-
-function toggleSubtaskCompletion(subIndex) {
-    if (currentTaskWithSubtasks !== null) {
-        tasksRef.transaction((currentData) => {
-            const subtask = currentData.tasks[currentTaskWithSubtasks].subtasks[subIndex];
-            subtask.completed = !subtask.completed;
             return currentData;
         });
     }
@@ -585,7 +385,7 @@ function swapItems(fromIndex, toIndex) {
             currentData.tasks[toIndex] = temp;
             return currentData;
         });
-    } else {
+    } else if (currentTab === 'events') {
         tasksRef.transaction((currentData) => {
             const temp = currentData.events[fromIndex];
             currentData.events[fromIndex] = currentData.events[toIndex];
@@ -595,15 +395,16 @@ function swapItems(fromIndex, toIndex) {
     }
 }
 
-// Закрытие модалок по клику вне области
+// Закрытие модалок
 window.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-        editModal.classList.remove('active');
-    }
-    if (e.target === deleteModal) {
-        deleteModal.classList.remove('active');
-    }
-    if (e.target === subtasksModal) {
-        subtasksModal.classList.remove('active');
-    }
+    if (e.target === editModal) editModal.classList.remove('active');
+    if (e.target === deleteModal) deleteModal.classList.remove('active');
+    if (e.target === subtasksModal) subtasksModal.classList.remove('active');
 });
+
+// Обновление пустых состояний
+function updateEmptyStates() {
+    emptyTasks.style.display = tasks.length === 0 ? 'block' : 'none';
+    emptyEvents.style.display = events.length === 0 ? 'block' : 'none';
+    emptyArchive.style.display = archive.length === 0 ? 'block' : 'none';
+}
