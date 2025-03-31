@@ -51,7 +51,7 @@ const closeSubtasksBtn = document.getElementById('close-subtasks');
 
 // Загрузка данных из Firebase
 tasksRef.on('value', (snapshot) => {
-    const data = snapshot.val() || {};
+    const data = snapshot.val() || { tasks: [], events: [], archive: [] };
     tasks = data.tasks || [];
     events = data.events || [];
     archive = data.archive || [];
@@ -195,21 +195,19 @@ tabBtns.forEach(btn => {
 // Функция архивирования задачи
 function archiveTask(index) {
     tasksRef.transaction((currentData) => {
-        const taskToArchive = currentData.tasks[index];
+        if (!currentData) currentData = { tasks: [], events: [], archive: [] };
         
-        // Добавляем дату архивации
+        const taskToArchive = currentData.tasks[index];
         taskToArchive.archivedAt = Date.now();
         
-        // Переносим в архив
         currentData.archive = currentData.archive || [];
         currentData.archive.unshift(taskToArchive);
-        
-        // Удаляем из текущих задач
         currentData.tasks.splice(index, 1);
         
         return currentData;
     });
 }
+
 
 // Функция восстановления из архива
 function restoreTask(index) {
@@ -227,14 +225,11 @@ function restoreTask(index) {
     });
 }
 
-// Отрисовка архива
 function renderArchive() {
     const archiveList = document.getElementById('archive-list');
     archiveList.innerHTML = '';
     
-    const archive = tasksData.archive || [];
-    
-    archive.forEach((task, index) => {
+    archive.forEach((task, index) => {  // Используем archive вместо tasksData.archive
         const taskEl = document.createElement('li');
         taskEl.className = 'task archive-item';
         taskEl.style.borderLeftColor = task.color || '#e5e7eb';
