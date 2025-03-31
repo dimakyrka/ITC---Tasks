@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ITC Planner</title>
+    <title>ITC Tasks</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
@@ -11,40 +11,20 @@
 </head>
 <body>
     <header>
-        <h1>ITC Planner</h1>
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="events">Мероприятия</button>
-            <button class="tab-btn" data-tab="tasks">Задачи</button>
-        </div>
+        <h1>ITC Tasks</h1>
     </header>
-
-    <!-- Мероприятия -->
-    <div class="tab-content active" id="events">
-        <div class="task-form">
-            <input type="text" id="event-input" placeholder="Добавить мероприятие..." autocomplete="off">
-            <button class="add-btn" id="add-event-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
-        </div>
-        <ul id="events-list"></ul>
+    
+    <div class="task-form">
+        <input type="text" id="task-input" placeholder="Добавь новую задачу..." autocomplete="off">
+        <button class="add-btn" id="add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
     </div>
-
-    <!-- Задачи -->
-    <div class="tab-content" id="tasks">
-        <div class="task-form">
-            <input type="text" id="task-input" placeholder="Добавить задачу..." autocomplete="off">
-            <button class="add-btn" id="add-task-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
-        </div>
-        <ul id="tasks-list"></ul>
-    </div>
+    
+    <ul id="tasks"></ul>
 
     <!-- Модальные окна -->
     <div class="modal" id="edit-modal">
@@ -59,21 +39,29 @@
                 <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
             </div>
             <div class="modal-actions">
-                <button id="save-edit" class="btn btn-primary">Сохранить</button>
-                <button id="cancel-edit" class="btn btn-outline">Отмена</button>
+                <button id="save-edit" class="btn btn-primary">Save</button>
+                <button id="cancel-edit" class="btn btn-outline">Cancel</button>
             </div>
         </div>
     </div>
 
     <div class="modal" id="delete-modal">
         <div class="modal-content">
-            <h2>Удалить</h2>
-            <p>Вы уверены, что хотите удалить?</p>
+            <h2>Удалить задачу</h2>
+            <p>Точно хочешь удалить эту задачу?</p>
             <div class="modal-actions">
-                <button id="confirm-delete" class="btn btn-danger">Удалить</button>
-                <button id="cancel-delete" class="btn btn-outline">Отмена</button>
+                <button id="confirm-delete" class="btn btn-danger">Delete</button>
+                <button id="cancel-delete" class="btn btn-outline">Cancel</button>
             </div>
         </div>
+    </div>
+
+    <div class="empty-state" id="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+        </svg>
+        <h3>Задач пока нет</h3>
+        <p>Добавь задачу, чтобы начать работу</p>
     </div>
 
     <script src="script.js"></script>
