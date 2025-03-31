@@ -14,7 +14,20 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const tasksRef = database.ref('tasks');
 
-// ... (весь предыдущий конфиг Firebase остаётся без изменений)
+function initDatabaseStructure() {
+  tasksRef.once('value').then((snapshot) => {
+    if (!snapshot.exists()) {
+      tasksRef.set({
+        events: [],
+        tasks: [],
+        subtasks: {}
+      });
+    }
+  });
+}
+
+// Вызов после инициализации Firebase
+initDatabaseStructure();
 
 // Состояния
 let currentTab = 'events';
