@@ -252,6 +252,9 @@ function renderArchive() {
     
     emptyArchive.style.display = 'none';
     
+    const archivedDate = new Date(task.archivedAt).toLocaleDateString();
+    taskEl.innerHTML += `<div class="archive-date">Архивировано: ${archivedDate}</div>`;
+    
     archive.forEach((task, index) => {
         const taskEl = document.createElement('li');
         taskEl.className = 'task archive-item';
