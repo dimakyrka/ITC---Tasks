@@ -196,12 +196,7 @@ function createTaskElement(item, index, type) {
             openSubtasksModal(index);
         });
     }
-    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
-    // Проверяем, что клик не по кнопке редактирования/удаления
-    if (!e.target.closest('.task-actions')) {
-        openSubtasksModal(index);
-    }
-    });
+    
     
     taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
         e.stopPropagation();
