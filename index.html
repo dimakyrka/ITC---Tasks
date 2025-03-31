@@ -18,7 +18,7 @@
         </div>
     </header>
 
-    <!-- Вкладка Мероприятий -->
+    <!-- Мероприятия -->
     <div class="tab-content active" id="events">
         <div class="task-form">
             <input type="text" id="event-input" placeholder="Добавить мероприятие..." autocomplete="off">
@@ -32,7 +32,7 @@
         <ul id="events-list"></ul>
     </div>
 
-    <!-- Вкладка Задач -->
+    <!-- Задачи -->
     <div class="tab-content" id="tasks">
         <div class="task-form">
             <input type="text" id="task-input" placeholder="Добавить задачу..." autocomplete="off">
@@ -46,9 +46,35 @@
         <ul id="tasks-list"></ul>
     </div>
 
-    <!-- Модальные окна (общие для обеих вкладок) -->
-    <div class="modal" id="edit-modal">...</div>
-    <div class="modal" id="delete-modal">...</div>
+    <!-- Модальные окна -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <h2>Редактировать</h2>
+            <input type="text" id="edit-input" class="task-input">
+            <div class="color-picker">
+                <div class="color-option selected" data-color="#e5e7eb" style="background: #e5e7eb;"></div>
+                <div class="color-option" data-color="#ef4444" style="background: #ef4444;"></div>
+                <div class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                <div class="color-option" data-color="#10b981" style="background: #10b981;"></div>
+                <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
+            </div>
+            <div class="modal-actions">
+                <button id="save-edit" class="btn btn-primary">Сохранить</button>
+                <button id="cancel-edit" class="btn btn-outline">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <h2>Удалить</h2>
+            <p>Вы уверены, что хотите удалить?</p>
+            <div class="modal-actions">
+                <button id="confirm-delete" class="btn btn-danger">Удалить</button>
+                <button id="cancel-delete" class="btn btn-outline">Отмена</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
