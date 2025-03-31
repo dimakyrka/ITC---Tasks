@@ -52,6 +52,8 @@ const subtasksList = document.getElementById('subtasks-list');
 const subtaskInput = document.getElementById('subtask-input');
 const addSubtaskBtn = document.getElementById('add-subtask-btn');
 const closeSubtasksBtn = document.getElementById('close-subtasks');
+const closeSubtasksTopBtn = document.getElementById('close-subtasks-top');
+
 
 // Инициализация структуры данных
 const initializeDataStructure = () => {
@@ -191,11 +193,11 @@ function createTaskElement(item, index, type) {
         </div>
     `;
     
-    if (type === 'tasks') {
-        taskEl.querySelector('.task-content').addEventListener('click', () => {
+    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+        if (!e.target.closest('.task-actions')) {
             openSubtasksModal(index);
-        });
-    }
+        }
+    });
     
     
     taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
@@ -412,13 +414,19 @@ cancelDeleteBtn.addEventListener('click', () => {
 });
 
 // Подзадачи
+// Функция открытия модального окна подзадач
 function openSubtasksModal(index) {
+    console.log('Opening subtasks for task index:', index);
+    
+    if (index === null || index === undefined || !tasks[index]) {
+        console.error('Invalid task index:', index);
+        return;
+    }
+    
     currentTaskWithSubtasks = index;
     const task = tasks[index];
     subtasksTitle.textContent = task.text;
     subtasksList.innerHTML = '';
-    
-    // Очищаем поле ввода
     subtaskInput.value = '';
     
     // Загружаем подзадачи
@@ -430,12 +438,7 @@ function openSubtasksModal(index) {
     
     // Показываем модальное окно
     subtasksModal.classList.add('active');
-    
-    // Фокусируемся на поле ввода
     subtaskInput.focus();
-    
-    // Добавляем обработчик закрытия по ESC
-    document.addEventListener('keydown', handleEscKey);
 }
 
 function handleEscKey(e) {
@@ -445,16 +448,25 @@ function handleEscKey(e) {
     }
 }
 
+// Функция добавления подзадачи в DOM
 function addSubtaskToDOM(subtask, index) {
     const subtaskEl = document.createElement('li');
     subtaskEl.className = 'subtask-item';
+    subtaskEl.dataset.index = index;
+    
     subtaskEl.innerHTML = `
-        <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${index}">
-        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
+        <input type="checkbox" class="subtask-checkbox" 
+               ${subtask.completed ? 'checked' : ''} 
+               data-index="${index}">
+        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">
+            ${subtask.text}
+        </span>
     `;
     
-    subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', (e) => {
-        toggleSubtaskCompletion(e.target.dataset.index);
+    // Обработчик изменения статуса
+    subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', function() {
+        const subIndex = parseInt(this.dataset.index);
+        toggleSubtaskCompletion(subIndex);
     });
     
     subtasksList.appendChild(subtaskEl);
@@ -472,34 +484,49 @@ subtaskInput.addEventListener('keypress', (e) => {
 
 function addSubtask() {
     const text = subtaskInput.value.trim();
-    if (text && currentTaskWithSubtasks !== null) {
-        const newSubtask = {
-            text: text,
-            completed: false
-        };
-        
-        // Оптимистичное обновление UI
-        addSubtaskToDOM(newSubtask, tasks[currentTaskWithSubtasks].subtasks?.length || 0);
-        subtaskInput.value = '';
-        
-        // Обновление в Firebase
-        tasksRef.transaction((currentData) => {
-            currentData.tasks[currentTaskWithSubtasks].subtasks = 
-                currentData.tasks[currentTaskWithSubtasks].subtasks || [];
-            currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
-            return currentData;
-        });
-    }
+    if (!text || currentTaskWithSubtasks === null) return;
+    
+    const newSubtask = {
+        text: text,
+        completed: false
+    };
+    
+    // Оптимистичное обновление UI
+    const newIndex = tasks[currentTaskWithSubtasks].subtasks?.length || 0;
+    addSubtaskToDOM(newSubtask, newIndex);
+    subtaskInput.value = '';
+    
+    // Обновление в Firebase
+    tasksRef.transaction((currentData) => {
+        if (!currentData.tasks[currentTaskWithSubtasks].subtasks) {
+            currentData.tasks[currentTaskWithSubtasks].subtasks = [];
+        }
+        currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
+        return currentData;
+    }).catch(error => {
+        console.error('Error adding subtask:', error);
+        // Откат UI при ошибке
+        subtasksList.lastChild.remove();
+    });
 }
-
 function toggleSubtaskCompletion(subIndex) {
-    if (currentTaskWithSubtasks !== null) {
-        tasksRef.transaction((currentData) => {
-            const subtask = currentData.tasks[currentTaskWithSubtasks].subtasks[subIndex];
-            subtask.completed = !subtask.completed;
-            return currentData;
-        });
-    }
+    if (currentTaskWithSubtasks === null) return;
+    
+    tasksRef.transaction((currentData) => {
+        const subtask = currentData.tasks[currentTaskWithSubtasks].subtasks[subIndex];
+        subtask.completed = !subtask.completed;
+        return currentData;
+    }).then(() => {
+        // Обновляем класс в UI после успешного сохранения
+        const subtaskEl = subtasksList.children[subIndex];
+        const textSpan = subtaskEl.querySelector('.subtask-text');
+        textSpan.classList.toggle('completed');
+    }).catch(error => {
+        console.error('Error toggling subtask:', error);
+        // Возвращаем чекбокс в исходное состояние
+        const checkbox = subtasksList.children[subIndex].querySelector('.subtask-checkbox');
+        checkbox.checked = !checkbox.checked;
+    });
 }
 
 // Drag and Drop
@@ -562,6 +589,19 @@ window.addEventListener('click', (e) => {
 
 // Обновляем обработчики
 archiveBtn.addEventListener('click', moveToArchive);
+// Обработчики событий
+addSubtaskBtn.addEventListener('click', addSubtask);
+subtaskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addSubtask();
+});
+
+closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+
+function closeSubtasksModal() {
+    subtasksModal.classList.remove('active');
+    currentTaskWithSubtasks = null;
+}
 
 // Инициализация
 document.querySelector('.task-form').style.display = 'flex';
