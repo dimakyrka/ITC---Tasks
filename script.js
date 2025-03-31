@@ -281,7 +281,15 @@ tabBtns.forEach(btn => {
         
         btn.classList.add('active');
         currentTab = btn.dataset.tab;
-        document.getElementById(`${currentTab}-tab`).classList.add('active');
+        
+        const activeTab = document.getElementById(`${currentTab}-tab`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+        
+        if (currentTab === 'archive') {
+            renderArchive();
+        }
     });
 });
 
