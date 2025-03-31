@@ -121,7 +121,7 @@ h1 {
     height: 2.5rem;
 }
 
-#tasks, #events {
+#tasks, #events, #archive {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -349,27 +349,53 @@ h1 {
     color: var(--text-light);
 }
 
-/* Для задач и мероприятий */
-.task-content {
-    flex: 1;
-    font-weight: 500;
-    padding-right: 0.5rem;
-    word-break: break-word;  /* Перенос длинных слов */
-    overflow-wrap: break-word; /* Перенос по словам */
-    white-space: normal; /* Разрешаем перенос строк */
+/* Archive specific styles */
+#archive .task {
+    opacity: 0.8;
+    background-color: rgba(245, 245, 245, 0.8);
 }
 
-/* Для подзадач */
-.subtask-text {
-    flex: 1;
+#archive .task-content {
+    color: var(--text-light);
+}
+
+#archive .task-actions {
+    gap: 0.25rem;
+}
+
+#archive .restore-btn {
+    color: var(--green);
+}
+
+#archive .delete-btn {
+    color: var(--red);
+}
+
+/* Text overflow handling */
+.task-content, .subtask-text, #edit-input, #subtask-input {
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: normal;
 }
 
-/* Для модального окна редактирования */
-#edit-input, #subtask-input {
-    word-break: break-word;
-    white-space: normal;
-    width: 100%;
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .tabs {
+        justify-content: space-between;
+    }
+    
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.9rem;
+    }
 }
