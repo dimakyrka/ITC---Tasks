@@ -18,6 +18,7 @@ const tasksRef = database.ref('tasks');
 let currentTab = 'tasks';
 let tasks = [];
 let events = [];
+let archive = [];
 let currentEditIndex = null;
 let currentDeleteIndex = null;
 let selectedColor = "#e5e7eb";
@@ -53,9 +54,11 @@ tasksRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
     tasks = data.tasks || [];
     events = data.events || [];
-    
+    archive = data.archive || [];
+
     renderTasks();
     renderEvents();
+    if (currentTab === 'archive') renderArchive();
     updateEmptyStates();
 });
 
@@ -116,6 +119,13 @@ function renderTasks() {
     updateEmptyStates();
 }
 
+document.getElementById('archive-btn').addEventListener('click', () => {
+    if (currentEditIndex !== null) {
+        archiveTask(currentEditIndex);
+        editModal.classList.remove('active');
+    }
+});
+
 // Отрисовка мероприятий
 function renderEvents() {
     eventsList.innerHTML = '';
@@ -171,6 +181,101 @@ function renderEvents() {
 function updateEmptyStates() {
     emptyTasks.classList.toggle('active', tasks.length === 0);
     emptyEvents.classList.toggle('active', events.length === 0);
+}
+
+// Добавим обработчик переключения вкладки архива
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (btn.dataset.tab === 'archive') {
+            renderArchive();
+        }
+    });
+});
+
+// Функция архивирования задачи
+function archiveTask(index) {
+    tasksRef.transaction((currentData) => {
+        const taskToArchive = currentData.tasks[index];
+        
+        // Добавляем дату архивации
+        taskToArchive.archivedAt = Date.now();
+        
+        // Переносим в архив
+        currentData.archive = currentData.archive || [];
+        currentData.archive.unshift(taskToArchive);
+        
+        // Удаляем из текущих задач
+        currentData.tasks.splice(index, 1);
+        
+        return currentData;
+    });
+}
+
+// Функция восстановления из архива
+function restoreTask(index) {
+    tasksRef.transaction((currentData) => {
+        const taskToRestore = currentData.archive[index];
+        
+        // Возвращаем в задачи
+        currentData.tasks = currentData.tasks || [];
+        currentData.tasks.unshift(taskToRestore);
+        
+        // Удаляем из архива
+        currentData.archive.splice(index, 1);
+        
+        return currentData;
+    });
+}
+
+// Отрисовка архива
+function renderArchive() {
+    const archiveList = document.getElementById('archive-list');
+    archiveList.innerHTML = '';
+    
+    const archive = tasksData.archive || [];
+    
+    archive.forEach((task, index) => {
+        const taskEl = document.createElement('li');
+        taskEl.className = 'task archive-item';
+        taskEl.style.borderLeftColor = task.color || '#e5e7eb';
+        taskEl.dataset.index = index;
+        
+        taskEl.innerHTML = `
+            <div class="task-content">${task.text}</div>
+            <div class="task-actions">
+                <button class="btn-icon restore-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        
+        taskEl.querySelector('.restore-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            restoreTask(index);
+        });
+        
+        archiveList.appendChild(taskEl);
+    });
+    
+    document.getElementById('empty-archive').style.display = 
+        archive.length === 0 ? 'block' : 'none';
+}
+
+// Обновим обработчик завершения задачи
+function toggleTaskCompletion(index) {
+    tasksRef.transaction((currentData) => {
+        const task = currentData.tasks[index];
+        task.completed = !task.completed;
+        
+        if (task.completed) {
+            // Автоматическое архивирование при завершении
+            archiveTask(index);
+        }
+        
+        return currentData;
+    });
 }
 
 // Переключение вкладок
