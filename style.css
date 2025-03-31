@@ -29,9 +29,6 @@ body {
 }
 
 header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
@@ -41,6 +38,36 @@ h1 {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--text);
+}
+
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.tab-btn {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-light);
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 .task-form {
@@ -89,7 +116,12 @@ h1 {
     height: 1.25rem;
 }
 
-#tasks {
+.add-btn.small {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+#tasks, #events {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -103,7 +135,7 @@ h1 {
     display: flex;
     align-items: center;
     border-left: 4px solid var(--border);
-    cursor: grab;
+    cursor: pointer;
     user-select: none;
     transition: all 0.2s;
     position: relative;
@@ -255,6 +287,7 @@ h1 {
     text-align: center;
     padding: 3rem 0;
     color: var(--text-light);
+    display: none;
 }
 
 .empty-state svg {
@@ -266,4 +299,52 @@ h1 {
 
 .empty-state p {
     margin-top: 0.5rem;
+}
+
+.empty-state.active {
+    display: block;
+}
+
+.subtasks-form {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+#subtask-input {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+}
+
+#subtasks-list {
+    list-style: none;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 1rem 0;
+}
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.subtask-checkbox {
+    margin-right: 0.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.subtask-text {
+    flex: 1;
+}
+
+.subtask-text.completed {
+    text-decoration: line-through;
+    color: var(--text-light);
 }
