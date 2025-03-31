@@ -189,11 +189,15 @@ function updateEmptyStates() {
 // Добавим обработчик переключения вкладки архива
 tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+        updateInputPlaceholder();
         if (btn.dataset.tab === 'archive') {
             renderArchive();
+            toggleInputField(); // Новый вызов для скрытия поля в архиве
+
         }
     });
 });
+updateInputPlaceholder();
 
 // Функция архивирования задачи
 function archiveItem(index, type) {
@@ -352,6 +356,23 @@ function addItem() {
         }
         
         taskInput.value = '';
+    }
+}
+
+
+function updateInputPlaceholder() {
+    const placeholderText = currentTab === 'tasks' 
+        ? 'Добавьте новую задачу...' 
+        : 'Добавьте новое мероприятие...';
+    taskInput.placeholder = placeholderText;
+}
+
+function toggleInputField() {
+    const taskForm = document.querySelector('.task-form');
+    if (currentTab === 'archive') {
+        taskForm.style.display = 'none';
+    } else {
+        taskForm.style.display = 'flex';
     }
 }
 
