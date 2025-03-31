@@ -12,6 +12,10 @@
 <body>
     <header>
         <h1>ITC Tasks</h1>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tasks">Задачи</button>
+            <button class="tab-btn" data-tab="events">Мероприятия</button>
+        </div>
     </header>
     
     <div class="task-form">
@@ -24,9 +28,49 @@
         </button>
     </div>
     
-    <ul id="tasks"></ul>
+    <div class="tab-content active" id="tasks-tab">
+        <ul id="tasks"></ul>
+        <div class="empty-state" id="empty-tasks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Задач пока нет</h3>
+            <p>Добавь задачу, чтобы начать работу</p>
+        </div>
+    </div>
+    
+    <div class="tab-content" id="events-tab">
+        <ul id="events"></ul>
+        <div class="empty-state" id="empty-events">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Мероприятий пока нет</h3>
+            <p>Добавь мероприятие, чтобы начать работу</p>
+        </div>
+    </div>
 
-    <!-- Модальные окна -->
+    <!-- Модальное окно подзадач -->
+    <div class="modal" id="subtasks-modal">
+        <div class="modal-content">
+            <h2 id="subtasks-title">Задача</h2>
+            <div class="subtasks-form">
+                <input type="text" id="subtask-input" placeholder="Добавить подзадачу..." autocomplete="off">
+                <button class="add-btn small" id="add-subtask-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+            <ul id="subtasks-list"></ul>
+            <div class="modal-actions">
+                <button id="close-subtasks" class="btn btn-outline">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
             <h2>Редактировать</h2>
@@ -39,29 +83,22 @@
                 <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
             </div>
             <div class="modal-actions">
-                <button id="save-edit" class="btn btn-primary">Save</button>
-                <button id="cancel-edit" class="btn btn-outline">Cancel</button>
+                <button id="save-edit" class="btn btn-primary">Сохранить</button>
+                <button id="cancel-edit" class="btn btn-outline">Отмена</button>
             </div>
         </div>
     </div>
 
+    <!-- Модальное окно удаления -->
     <div class="modal" id="delete-modal">
         <div class="modal-content">
             <h2>Удалить задачу</h2>
             <p>Точно хочешь удалить эту задачу?</p>
             <div class="modal-actions">
-                <button id="confirm-delete" class="btn btn-danger">Delete</button>
-                <button id="cancel-delete" class="btn btn-outline">Cancel</button>
+                <button id="confirm-delete" class="btn btn-danger">Удалить</button>
+                <button id="cancel-delete" class="btn btn-outline">Отмена</button>
             </div>
         </div>
-    </div>
-
-    <div class="empty-state" id="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-        </svg>
-        <h3>Задач пока нет</h3>
-        <p>Добавь задачу, чтобы начать работу</p>
     </div>
 
     <script src="script.js"></script>
