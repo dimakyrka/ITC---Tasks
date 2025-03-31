@@ -308,6 +308,7 @@ cancelDeleteBtn.addEventListener('click', () => {
 });
 
 // Подзадачи
+// В функции openSubtasksModal
 function openSubtasksModal(index) {
     currentTaskWithSubtasks = index;
     const task = tasks[index];
@@ -317,24 +318,28 @@ function openSubtasksModal(index) {
     // Загружаем подзадачи
     if (task.subtasks && task.subtasks.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
-            const subtaskEl = document.createElement('li');
-            subtaskEl.className = 'subtask-item';
-            subtaskEl.innerHTML = `
-                <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${subIndex}">
-                <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
-            `;
-            
-            // Обработчик изменения состояния подзадачи
-            subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', (e) => {
-                toggleSubtaskCompletion(e.target.dataset.index);
-            });
-            
-            subtasksList.appendChild(subtaskEl);
+            addSubtaskToDOM(subtask, subIndex);
         });
     }
     
     subtasksModal.classList.add('active');
     subtaskInput.focus();
+}
+
+// Новая функция для добавления подзадачи в DOM
+function addSubtaskToDOM(subtask, index) {
+    const subtaskEl = document.createElement('li');
+    subtaskEl.className = 'subtask-item';
+    subtaskEl.innerHTML = `
+        <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${index}">
+        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
+    `;
+    
+    subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', (e) => {
+        toggleSubtaskCompletion(e.target.dataset.index);
+    });
+    
+    subtasksList.appendChild(subtaskEl);
 }
 
 closeSubtasksBtn.addEventListener('click', () => {
