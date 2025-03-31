@@ -354,14 +354,24 @@ function addSubtask() {
             completed: false
         };
         
+        // Оптимистичное обновление интерфейса
+        const subtaskEl = document.createElement('li');
+        subtaskEl.className = 'subtask-item';
+        subtaskEl.innerHTML = `
+            <input type="checkbox" class="subtask-checkbox" data-index="${tasks[currentTaskWithSubtasks].subtasks?.length || 0}">
+            <span class="subtask-text">${text}</span>
+        `;
+        subtasksList.appendChild(subtaskEl);
+        
+        subtaskInput.value = '';
+        
+        // Обновление в Firebase
         tasksRef.transaction((currentData) => {
             currentData.tasks[currentTaskWithSubtasks].subtasks = 
                 currentData.tasks[currentTaskWithSubtasks].subtasks || [];
             currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
             return currentData;
         });
-        
-        subtaskInput.value = '';
     }
 }
 
