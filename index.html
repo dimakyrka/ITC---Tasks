@@ -15,6 +15,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="tasks">Задачи</button>
             <button class="tab-btn" data-tab="events">Мероприятия</button>
+            <button class="tab-btn" data-tab="archive">Архив</button>
         </div>
     </header>
     
@@ -47,6 +48,18 @@
             </svg>
             <h3>Мероприятий пока нет</h3>
             <p>Добавь мероприятие, чтобы начать работу</p>
+        </div>
+    </div>
+
+    <!-- Добавим контейнер для архива -->
+    <div class="tab-content" id="archive-tab">
+        <ul id="archive-list"></ul>
+        <div class="empty-state" id="empty-archive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Архив пуст</h3>
+            <p>Здесь будут завершенные задачи</p>
         </div>
     </div>
 
