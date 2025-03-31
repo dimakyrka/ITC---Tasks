@@ -409,3 +409,22 @@ h1 {
     color: #9ca3af;
     margin-top: 0.5rem;
 }
+
+
+.task-item {
+    border-left: 4px solid #3b82f6;
+}
+
+.event-item {
+    border-left: 4px solid #10b981;
+}
+
+.archive-item {
+    opacity: 0.7;
+    background-color: #f9fafb;
+}
+
+.archive-item .task-content {
+    text-decoration: line-through;
+    color: #6b7280;
+}
