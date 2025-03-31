@@ -326,26 +326,14 @@ function moveToArchive() {
     }
 }
 
+
+// Восстановление из архива
 // В функции restoreFromArchive (изменения)
 function restoreFromArchive(index) {
     tasksRef.transaction((currentData) => {
         const item = currentData.archived[index];
         if (!item.type) item.type = 'task'; // Значение по умолчанию
         
-        const targetArray = item.type === 'event' ? 'events' : 'tasks';
-        
-        currentData[targetArray] = currentData[targetArray] || [];
-        currentData[targetArray].unshift(item);
-        currentData.archived.splice(index, 1);
-        
-        return currentData;
-    });
-}
-
-// Восстановление из архива
-function restoreFromArchive(index) {
-    tasksRef.transaction((currentData) => {
-        const item = currentData.archived[index];
         const targetArray = item.type === 'event' ? 'events' : 'tasks';
         
         currentData[targetArray] = currentData[targetArray] || [];
