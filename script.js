@@ -123,7 +123,8 @@ function renderTasks() {
 
 document.getElementById('archive-btn').addEventListener('click', () => {
     if (currentEditIndex !== null) {
-        archiveTask(currentEditIndex);
+        const type = editModal.dataset.editType;
+        archiveItem(currentEditIndex, type);
         editModal.classList.remove('active');
     }
 });
@@ -195,30 +196,26 @@ tabBtns.forEach(btn => {
 });
 
 // Функция архивирования задачи
-function archiveTask(index) {
+function archiveItem(index, type) {
     tasksRef.transaction((currentData) => {
-        // Инициализация структуры, если данных нет
-        if (!currentData) {
-            currentData = { tasks: [], events: [], archive: [] };
-        }
+        if (!currentData) currentData = { tasks: [], events: [], archive: [] };
         
-        // Проверка существования задач
-        if (!currentData.tasks || index >= currentData.tasks.length) {
-            return currentData;
-        }
+        const itemToArchive = type === 'tasks' 
+            ? { ...currentData.tasks[index], type: 'task' }
+            : { ...currentData.events[index], type: 'event' };
         
-        const taskToArchive = { ...currentData.tasks[index] };
-        taskToArchive.archivedAt = Date.now();
+        itemToArchive.archivedAt = Date.now();
         
         currentData.archive = currentData.archive || [];
-        currentData.archive.unshift(taskToArchive);
-        currentData.tasks.splice(index, 1);
+        currentData.archive.unshift(itemToArchive);
+        
+        if (type === 'tasks') {
+            currentData.tasks.splice(index, 1);
+        } else {
+            currentData.events.splice(index, 1);
+        }
         
         return currentData;
-    }).then(() => {
-        if (currentTab === 'archive') {
-            renderArchive();
-        }
     });
 }
 
@@ -241,28 +238,17 @@ function restoreTask(index) {
 
 function renderArchive() {
     const archiveList = document.getElementById('archive-list');
-    const emptyArchive = document.getElementById('empty-archive');
-    
     archiveList.innerHTML = '';
     
-    if (archive.length === 0) {
-        emptyArchive.style.display = 'block';
-        return;
-    }
-    
-    emptyArchive.style.display = 'none';
-    
-    const archivedDate = new Date(task.archivedAt).toLocaleDateString();
-    taskEl.innerHTML += `<div class="archive-date">Архивировано: ${archivedDate}</div>`;
-    
-    archive.forEach((task, index) => {
-        const taskEl = document.createElement('li');
-        taskEl.className = 'task archive-item';
-        taskEl.style.borderLeftColor = task.color || '#e5e7eb';
-        taskEl.dataset.index = index;
+    archive.forEach((item, index) => {
+        const itemEl = document.createElement('li');
+        itemEl.className = `task archive-item ${item.type}-item`;
+        itemEl.style.borderLeftColor = item.color || '#e5e7eb';
+        itemEl.dataset.index = index;
         
-        taskEl.innerHTML = `
-            <div class="task-content">${task.text}</div>
+        const icon = item.type === 'task' ? '📝' : '📅';
+        itemEl.innerHTML = `
+            <div class="task-content">${icon} ${item.text}</div>
             <div class="task-actions">
                 <button class="btn-icon restore-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -272,12 +258,29 @@ function renderArchive() {
             </div>
         `;
         
-        taskEl.querySelector('.restore-btn').addEventListener('click', (e) => {
+        itemEl.querySelector('.restore-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            restoreTask(index);
+            restoreItem(index, item.type);
         });
         
-        archiveList.appendChild(taskEl);
+        archiveList.appendChild(itemEl);
+    });
+}
+
+function restoreItem(index, type) {
+    tasksRef.transaction((currentData) => {
+        const itemToRestore = currentData.archive[index];
+        
+        if (type === 'task') {
+            currentData.tasks = currentData.tasks || [];
+            currentData.tasks.unshift(itemToRestore);
+        } else {
+            currentData.events = currentData.events || [];
+            currentData.events.unshift(itemToRestore);
+        }
+        
+        currentData.archive.splice(index, 1);
+        return currentData;
     });
 }
 
@@ -358,11 +361,14 @@ function openEditModal(index, type) {
     const item = type === 'tasks' ? tasks[index] : events[index];
     editInput.value = item.text;
     selectedColor = item.color || '#e5e7eb';
+    
+    // Показываем/скрываем кнопку архива для мероприятий
+    const archiveBtn = document.getElementById('archive-btn');
+    archiveBtn.style.display = type === 'tasks' ? 'block' : 'block';
+    
     updateColorSelection();
     editModal.classList.add('active');
     editInput.focus();
-    
-    // Сохраняем тип элемента для редактирования
     editModal.dataset.editType = type;
 }
 
