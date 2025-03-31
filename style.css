@@ -1,3 +1,4 @@
+style.css
 :root {
     --bg: #f9fafb;
     --card: #ffffff;
@@ -29,6 +30,9 @@ body {
 }
 
 header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
@@ -38,36 +42,6 @@ h1 {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--text);
-}
-
-.tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.tab-btn {
-    padding: 0.5rem 1rem;
-    background: transparent;
-    border: none;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--text-light);
-    transition: all 0.2s;
-}
-
-.tab-btn.active {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary);
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
 }
 
 .task-form {
@@ -116,12 +90,7 @@ h1 {
     height: 1.25rem;
 }
 
-.add-btn.small {
-    width: 2.5rem;
-    height: 2.5rem;
-}
-
-#tasks, #events {
+#tasks {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -135,7 +104,7 @@ h1 {
     display: flex;
     align-items: center;
     border-left: 4px solid var(--border);
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
     transition: all 0.2s;
     position: relative;
@@ -287,7 +256,6 @@ h1 {
     text-align: center;
     padding: 3rem 0;
     color: var(--text-light);
-    display: none;
 }
 
 .empty-state svg {
@@ -299,145 +267,4 @@ h1 {
 
 .empty-state p {
     margin-top: 0.5rem;
-}
-
-.empty-state.active {
-    display: block;
-}
-
-.subtasks-form {
-    display: flex;
-    gap: 0.5rem;
-    margin: 1rem 0;
-}
-
-#subtask-input {
-    flex: 1;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-}
-
-#subtasks-list {
-    list-style: none;
-    max-height: 300px;
-    overflow-y: auto;
-    margin: 1rem 0;
-}
-
-.subtask-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.subtask-checkbox {
-    margin-right: 0.75rem;
-    width: 1.25rem;
-    height: 1.25rem;
-    cursor: pointer;
-}
-
-.subtask-text {
-    flex: 1;
-}
-
-.subtask-text.completed {
-    text-decoration: line-through;
-    color: var(--text-light);
-}
-
-/* Для задач и мероприятий */
-.task-content {
-    flex: 1;
-    font-weight: 500;
-    padding-right: 0.5rem;
-    word-break: break-word;  /* Перенос длинных слов */
-    overflow-wrap: break-word; /* Перенос по словам */
-    white-space: normal; /* Разрешаем перенос строк */
-}
-
-/* Для подзадач */
-.subtask-text {
-    flex: 1;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-}
-
-/* Для модального окна редактирования */
-#edit-input, #subtask-input {
-    word-break: break-word;
-    white-space: normal;
-    width: 100%;
-}
-
-.subtask-item {
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Стиль для архивных задач */
-.archive-item {
-    background: #f3f4f6;
-    opacity: 0.8;
-    border-left-color: #9ca3af !important;
-}
-
-.archive-item .task-content {
-    text-decoration: line-through;
-    color: #6b7280;
-}
-
-/* Кнопка восстановления */
-.restore-btn {
-    color: #3b82f6;
-}
-
-.restore-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
-}
-
-.archive-date {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    margin-top: 0.5rem;
-}
-
-
-.task-item {
-    border-left: 4px solid #3b82f6;
-}
-
-.event-item {
-    border-left: 4px solid #10b981;
-}
-
-.archive-item {
-    opacity: 0.7;
-    background-color: #f9fafb;
-}
-
-.archive-item .task-content {
-    text-decoration: line-through;
-    color: #6b7280;
-}
-
-#task-form {
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-#task-form.hidden {
-    height: 0;
-    opacity: 0;
-    margin: 0;
-    padding: 0;
-    visibility: hidden;
 }
