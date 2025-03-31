@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,10 +14,6 @@
             --text: #111827;
             --text-light: #6b7280;
             --primary: #6366f1;
-            --red: #ef4444;
-            --blue: #3b82f6;
-            --green: #10b981;
-            --purple: #8b5cf6;
             --border: #e5e7eb;
             --shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
@@ -26,7 +22,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
@@ -35,22 +31,26 @@
             padding: 1rem;
             max-width: 600px;
             margin: 0 auto;
-            min-height: 100vh;
         }
 
-        header {
+        .tabs {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 1rem;
             margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text);
+        .tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
 
         .task-form {
@@ -59,75 +59,37 @@
             margin-bottom: 1.5rem;
         }
 
-        #task-input {
+        input[type="text"] {
             flex: 1;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem;
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
+            border-radius: 0.5rem;
             font-size: 1rem;
             outline: none;
-            transition: all 0.2s;
-            background: var(--card);
-        }
-
-        #task-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
         .add-btn {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 0.75rem;
             background: var(--primary);
             color: white;
             border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 0 1rem;
+            border-radius: 0.5rem;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .add-btn:hover {
-            background: #4f46e5;
-            transform: scale(1.05);
-        }
-
-        .add-btn svg {
-            width: 1.25rem;
-            height: 1.25rem;
-        }
-
-        #tasks {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
         }
 
         .task {
-            background: var(--card);
+            background: white;
             padding: 1rem;
-            border-radius: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
             box-shadow: var(--shadow);
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            border-left: 4px solid var(--border);
-            cursor: grab;
-            user-select: none;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .task.dragging {
-            opacity: 0.8;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .task-content {
-            flex: 1;
-            font-weight: 500;
-            padding-right: 0.5rem;
+            flex-grow: 1;
         }
 
         .task-actions {
@@ -136,27 +98,10 @@
         }
 
         .btn-icon {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
+            background: none;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
-            color: var(--text-light);
-        }
-
-        .btn-icon:hover {
-            background: rgba(0,0,0,0.05);
-            color: var(--text);
-        }
-
-        .btn-icon svg {
-            width: 1rem;
-            height: 1rem;
+            padding: 0.25rem;
         }
 
         .modal {
@@ -166,180 +111,77 @@
             right: 0;
             bottom: 0;
             background: rgba(0,0,0,0.5);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            padding: 1rem;
         }
 
         .modal.active {
-            opacity: 1;
-            pointer-events: all;
+            display: flex;
         }
 
         .modal-content {
             background: white;
             padding: 1.5rem;
             border-radius: 1rem;
-            width: 100%;
-            max-width: 24rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
         }
 
-        .modal h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .modal-actions {
+        .subtask-item {
             display: flex;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
         }
 
-        .btn {
-            padding: 0.625rem 1.25rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            flex: 1;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #4f46e5;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        .btn-outline:hover {
-            background: rgba(0,0,0,0.05);
-        }
-
-        .btn-danger {
-            background: var(--red);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .color-picker {
+        .subtask-input {
+            flex-grow: 1;
             display: flex;
-            gap: 0.75rem;
+            gap: 0.5rem;
             margin: 1rem 0;
-            justify-content: center;
-        }
-
-        .color-option {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .color-option.selected {
-            transform: scale(1.1);
-            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--text);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 0;
-            color: var(--text-light);
-        }
-
-        .empty-state svg {
-            width: 4rem;
-            height: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .empty-state p {
-            margin-top: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>ITC Tasks</h1>
-    </header>
-    
-    <div class="task-form">
-        <input type="text" id="task-input" placeholder="Добавь новую задачу..." autocomplete="off">
-        <button class="add-btn" id="add-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-        </button>
+    <div class="tabs">
+        <div class="tab active" data-tab="tasks">Задачи</div>
+        <div class="tab" data-tab="events">Мероприятия</div>
     </div>
-    
-    <ul id="tasks">
-        <!-- тут задачи будут -->
-    </ul>
 
-    <!-- режим редактирования -->
-    <div class="modal" id="edit-modal">
-        <div class="modal-content">
-            <h2>Редактировать</h2>
-            <input type="text" id="edit-input" class="task-input">
-            <div class="color-picker">
-                <div class="color-option selected" data-color="#e5e7eb" style="background: #e5e7eb;"></div>
-                <div class="color-option" data-color="#ef4444" style="background: #ef4444;"></div>
-                <div class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></div>
-                <div class="color-option" data-color="#10b981" style="background: #10b981;"></div>
-                <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
-            </div>
-            <div class="modal-actions">
-                <button id="save-edit" class="btn btn-primary">Save</button>
-                <button id="cancel-edit" class="btn btn-outline">Cancel</button>
-            </div>
+    <!-- Задачи -->
+    <div class="content active" data-content="tasks">
+        <div class="task-form">
+            <input type="text" id="task-input" placeholder="Новая задача...">
+            <button class="add-btn" id="add-task">+</button>
         </div>
+        <div id="tasks-list"></div>
     </div>
 
-    <!-- удаление -->
-    <div class="modal" id="delete-modal">
-        <div class="modal-content">
-            <h2>Удалить задачу</h2>
-            <p>Точно хочешь удалить эту задачу?</p>
-            <div class="modal-actions">
-                <button id="confirm-delete" class="btn btn-danger">Delete</button>
-                <button id="cancel-delete" class="btn btn-outline">Cancel</button>
-            </div>
+    <!-- Мероприятия -->
+    <div class="content" data-content="events">
+        <div class="task-form">
+            <input type="text" id="event-input" placeholder="Новое мероприятие...">
+            <button class="add-btn" id="add-event">+</button>
         </div>
+        <div id="events-list"></div>
     </div>
 
-    <!-- пустое состояние (задач нет) -->
-    <div class="empty-state" id="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-        </svg>
-        <h3>Задач пока нет</h3>
-        <p>Добавь задачу, чтобы начать работу</p>
+    <!-- Модальное окно подзадач -->
+    <div class="modal" id="subtasks-modal">
+        <div class="modal-content">
+            <h3 id="task-title"></h3>
+            <div class="subtask-input">
+                <input type="text" id="subtask-input" placeholder="Добавить подзадачу...">
+                <button class="add-btn" id="add-subtask">+</button>
+            </div>
+            <div id="subtasks-list"></div>
+            <button class="add-btn" style="margin-top: 1rem;" onclick="document.getElementById('subtasks-modal').classList.remove('active')">Закрыть</button>
+        </div>
     </div>
 
     <script>
-        // конфиг бдшки
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
             authDomain: "itc-tasks.firebaseapp.com",
@@ -350,240 +192,154 @@
             appId: "1:736776837496:web:27341fe39226d1b8d0108d"
         };
 
-        
-        // инициализация бдкши
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const tasksRef = database.ref('tasks');
-        
-        // состояния
-        let tasks = [];
-        let currentEditIndex = null;
-        let currentDeleteIndex = null;
-        let selectedColor = "#e5e7eb";
-        let draggedItem = null;
-        
-        // DOM элементы
-        const taskInput = document.getElementById('task-input');
-        const addBtn = document.getElementById('add-btn');
-        const tasksList = document.getElementById('tasks');
-        const emptyState = document.getElementById('empty-state');
-        
-        //...//
-        const editModal = document.getElementById('edit-modal');
-        const editInput = document.getElementById('edit-input');
-        const saveEditBtn = document.getElementById('save-edit');
-        const cancelEditBtn = document.getElementById('cancel-edit');
-        const colorOptions = document.querySelectorAll('#edit-modal .color-option');
-        
-        const deleteModal = document.getElementById('delete-modal');
-        const confirmDeleteBtn = document.getElementById('confirm-delete');
-        const cancelDeleteBtn = document.getElementById('cancel-delete');
-        
-        // парсинг задач из бдшки
-        tasksRef.on('value', (snapshot) => {
-            tasks = snapshot.val() || [];
-            renderTasks();
-            updateEmptyState();
-        });
-        
-        // отрисовка задач
-        function renderTasks() {
-            tasksList.innerHTML = '';
+        // Инициализация Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const tasksRef = db.ref('tasks');
+        const eventsRef = db.ref('events');
+
+        let currentTaskId = null;
+
+        // Рендер задач
+        function renderTasks(tasks) {
+            const list = document.getElementById('tasks-list');
+            list.innerHTML = '';
             
-            tasks.forEach((task, index) => {
-                const taskEl = document.createElement('li');
-                taskEl.className = 'task';
-                taskEl.style.borderLeftColor = task.color || '#e5e7eb';
-                taskEl.setAttribute('draggable', 'true');
-                taskEl.dataset.index = index;
-                
-                taskEl.innerHTML = `
-                    <div class="task-content">${task.text || task}</div>
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = 'task';
+                div.innerHTML = `
+                    <div class="task-content">${task.text}</div>
                     <div class="task-actions">
-                        <button class="btn-icon edit-btn">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <button class="btn-icon delete-btn">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
+                        <button class="btn-icon" onclick="openSubtasks('${task.id}')">✓</button>
+                        <button class="btn-icon" onclick="deleteTask('${task.id}')">×</button>
                     </div>
                 `;
-                
-                tasksList.appendChild(taskEl);
+                list.appendChild(div);
             });
+        }
+
+        // Рендер мероприятий
+        function renderEvents(events) {
+            const list = document.getElementById('events-list');
+            list.innerHTML = '';
             
-            // добавляем чек событий
-            document.querySelectorAll('.task').forEach(task => {
-                task.addEventListener('dragstart', handleDragStart);
-                task.addEventListener('dragover', handleDragOver);
-                task.addEventListener('drop', handleDrop);
-                task.addEventListener('dragend', handleDragEnd);
-                
-                task.querySelector('.edit-btn').addEventListener('click', () => {
-                    openEditModal(parseInt(task.dataset.index));
-                });
-                
-                task.querySelector('.delete-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openDeleteModal(parseInt(task.dataset.index));
-                });
+            events.forEach(event => {
+                const div = document.createElement('div');
+                div.className = 'task';
+                div.innerHTML = `
+                    <div class="task-content">${event.text}</div>
+                    <div class="task-actions">
+                        <button class="btn-icon" onclick="deleteEvent('${event.id}')">×</button>
+                    </div>
+                `;
+                list.appendChild(div);
             });
         }
-        
-        // обновляем видимость пустого состояния
-        function updateEmptyState() {
-            emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
+
+        // Открытие подзадач
+        function openSubtasks(taskId) {
+            currentTaskId = taskId;
+            const task = tasksRef.child(taskId);
+            task.once('value', snap => {
+                const data = snap.val();
+                document.getElementById('task-title').textContent = data.text;
+                renderSubtasks(data.subtasks || []);
+                document.getElementById('subtasks-modal').classList.add('active');
+            });
         }
-        
-        // добавить задачу
-        addBtn.addEventListener('click', addTask);
-        taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTask();
-        });
-        
-        function addTask() {
-            const text = taskInput.value.trim();
+
+        // Рендер подзадач
+        function renderSubtasks(subtasks) {
+            const list = document.getElementById('subtasks-list');
+            list.innerHTML = '';
+            
+            subtasks.forEach((subtask, index) => {
+                const div = document.createElement('div');
+                div.className = 'subtask-item';
+                div.innerHTML = `
+                    <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
+                        onchange="toggleSubtask(${index})">
+                    <span>${subtask.text}</span>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Добавление задачи
+        document.getElementById('add-task').addEventListener('click', () => {
+            const text = document.getElementById('task-input').value.trim();
             if (text) {
-                tasksRef.transaction((currentTasks) => {
-                    currentTasks = currentTasks || [];
-                    currentTasks.unshift({
-                        text: text,
-                        color: "#e5e7eb",
-                        createdAt: Date.now()
-                    });
-                    return currentTasks;
-                });
-                taskInput.value = '';
+                const newTask = {
+                    id: Date.now().toString(),
+                    text: text,
+                    subtasks: []
+                };
+                tasksRef.child(newTask.id).set(newTask);
+                document.getElementById('task-input').value = '';
             }
+        });
+
+        // Добавление мероприятия
+        document.getElementById('add-event').addEventListener('click', () => {
+            const text = document.getElementById('event-input').value.trim();
+            if (text) {
+                const newEvent = {
+                    id: Date.now().toString(),
+                    text: text
+                };
+                eventsRef.child(newEvent.id).set(newEvent);
+                document.getElementById('event-input').value = '';
+            }
+        });
+
+        // Добавление подзадачи
+        document.getElementById('add-subtask').addEventListener('click', () => {
+            const text = document.getElementById('subtask-input').value.trim();
+            if (text && currentTaskId) {
+                const newSubtask = {
+                    text: text,
+                    completed: false
+                };
+                tasksRef.child(currentTaskId).child('subtasks').transaction(subtasks => {
+                    return [...(subtasks || []), newSubtask];
+                });
+                document.getElementById('subtask-input').value = '';
+            }
+        });
+
+        // Удаление задачи
+        function deleteTask(taskId) {
+            tasksRef.child(taskId).remove();
         }
-        
-        // функции в редактиовании задачи
-        function openEditModal(index) {
-            currentEditIndex = index;
-            const task = tasks[index];
-            editInput.value = task.text || task;
-            selectedColor = task.color || '#e5e7eb';
-            updateColorSelection();
-            editModal.classList.add('active');
-            editInput.focus();
+
+        // Удаление мероприятия
+        function deleteEvent(eventId) {
+            eventsRef.child(eventId).remove();
         }
-        
-        function updateColorSelection() {
-            colorOptions.forEach(option => {
-                option.classList.toggle('selected', option.dataset.color === selectedColor);
+
+        // Переключение подзадачи
+        function toggleSubtask(index) {
+            tasksRef.child(currentTaskId).child('subtasks').transaction(subtasks => {
+                subtasks[index].completed = !subtasks[index].completed;
+                return subtasks;
             });
         }
-        
-        colorOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                selectedColor = option.dataset.color;
-                updateColorSelection();
+
+        // Переключение вкладок
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab, .content').forEach(el => {
+                    el.classList.remove('active');
+                });
+                tab.classList.add('active');
+                document.querySelector(`[data-content="${tab.dataset.tab}"]`).classList.add('active');
             });
         });
-        
-        saveEditBtn.addEventListener('click', saveTaskEdit);
-        editInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') saveTaskEdit();
-        });
-        
-        cancelEditBtn.addEventListener('click', () => {
-            editModal.classList.remove('active');
-        });
-        
-        function saveTaskEdit() {
-            const newText = editInput.value.trim();
-            if (newText && currentEditIndex !== null) {
-                tasksRef.transaction((currentTasks) => {
-                    if (typeof currentTasks[currentEditIndex] === 'object') {
-                        currentTasks[currentEditIndex].text = newText;
-                        currentTasks[currentEditIndex].color = selectedColor;
-                    } else {
-                        currentTasks[currentEditIndex] = {
-                            text: newText,
-                            color: selectedColor,
-                            createdAt: Date.now()
-                        };
-                    }
-                    return currentTasks;
-                });
-                editModal.classList.remove('active');
-            }
-        }
-        
-        // функция удаления задачи
-        function openDeleteModal(index) {
-            currentDeleteIndex = index;
-            deleteModal.classList.add('active');
-        }
-        
-        confirmDeleteBtn.addEventListener('click', () => {
-            if (currentDeleteIndex !== null) {
-                tasksRef.transaction((currentTasks) => {
-                    currentTasks.splice(currentDeleteIndex, 1);
-                    return currentTasks;
-                });
-                deleteModal.classList.remove('active');
-                currentDeleteIndex = null;
-            }
-        });
-        
-        cancelDeleteBtn.addEventListener('click', () => {
-            deleteModal.classList.remove('active');
-            currentDeleteIndex = null;
-        });
-        
-        // Drag and drop functions
-        function handleDragStart(e) {
-            draggedItem = this;
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => {
-                this.classList.add('dragging');
-            }, 0);
-        }
-        
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-        
-        function handleDrop(e) {
-            e.preventDefault();
-            if (draggedItem !== this) {
-                const fromIndex = parseInt(draggedItem.dataset.index);
-                const toIndex = parseInt(this.dataset.index);
-                swapTasks(fromIndex, toIndex);
-            }
-        }
-        
-        function handleDragEnd() {
-            this.classList.remove('dragging');
-        }
-        
-        function swapTasks(fromIndex, toIndex) {
-            tasksRef.transaction((currentTasks) => {
-                const temp = currentTasks[fromIndex];
-                currentTasks[fromIndex] = currentTasks[toIndex];
-                currentTasks[toIndex] = temp;
-                return currentTasks;
-            });
-        }
-        
-        
-        window.addEventListener('click', (e) => {
-            if (e.target === editModal) {
-                editModal.classList.remove('active');
-            }
-            if (e.target === deleteModal) {
-                deleteModal.classList.remove('active');
-            }
-        });
+
+        // Инициализация данных
+        tasksRef.on('value', snap => renderTasks(Object.values(snap.val() || {})));
+        eventsRef.on('value', snap => renderEvents(Object.values(snap.val() || {})));
     </script>
 </body>
 </html>
