@@ -227,9 +227,18 @@ function restoreTask(index) {
 
 function renderArchive() {
     const archiveList = document.getElementById('archive-list');
+    const emptyArchive = document.getElementById('empty-archive');
+    
     archiveList.innerHTML = '';
     
-    archive.forEach((task, index) => {  // Используем archive вместо tasksData.archive
+    if (archive.length === 0) {
+        emptyArchive.style.display = 'block';
+        return;
+    }
+    
+    emptyArchive.style.display = 'none';
+    
+    archive.forEach((task, index) => {
         const taskEl = document.createElement('li');
         taskEl.className = 'task archive-item';
         taskEl.style.borderLeftColor = task.color || '#e5e7eb';
@@ -253,9 +262,6 @@ function renderArchive() {
         
         archiveList.appendChild(taskEl);
     });
-    
-    document.getElementById('empty-archive').style.display = 
-        archive.length === 0 ? 'block' : 'none';
 }
 
 // Обновим обработчик завершения задачи
