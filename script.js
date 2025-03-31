@@ -58,7 +58,9 @@ tasksRef.on('value', (snapshot) => {
 
     renderTasks();
     renderEvents();
-    if (currentTab === 'archive') renderArchive();
+    if (currentTab === 'archive') {
+        renderArchive();
+    }
     updateEmptyStates();
 });
 
@@ -195,9 +197,17 @@ tabBtns.forEach(btn => {
 // Функция архивирования задачи
 function archiveTask(index) {
     tasksRef.transaction((currentData) => {
-        if (!currentData) currentData = { tasks: [], events: [], archive: [] };
+        // Инициализация структуры, если данных нет
+        if (!currentData) {
+            currentData = { tasks: [], events: [], archive: [] };
+        }
         
-        const taskToArchive = currentData.tasks[index];
+        // Проверка существования задач
+        if (!currentData.tasks || index >= currentData.tasks.length) {
+            return currentData;
+        }
+        
+        const taskToArchive = { ...currentData.tasks[index] };
         taskToArchive.archivedAt = Date.now();
         
         currentData.archive = currentData.archive || [];
@@ -205,6 +215,10 @@ function archiveTask(index) {
         currentData.tasks.splice(index, 1);
         
         return currentData;
+    }).then(() => {
+        if (currentTab === 'archive') {
+            renderArchive();
+        }
     });
 }
 
