@@ -403,3 +403,9 @@ h1 {
 .restore-btn:hover {
     background: rgba(59, 130, 246, 0.1);
 }
+
+.archive-date {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 0.5rem;
+}
