@@ -294,48 +294,8 @@ h1 {
     box-shadow: 0 0 0 2px white, 0 0 0 4px var(--text);
 }
 
-.empty-state {
+.empty {
     text-align: center;
-    padding: 3rem 0;
     color: var(--text-light);
+    padding: 2rem 0;
 }
-
-.empty-state svg {
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-state p {
-    margin-top: 0.5rem;
-}
-/* Добавьте это в конец файла */
-.tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.tab-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    background: var(--border);
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tab-btn.active {
-    background: var(--primary);
-    color: white;
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
