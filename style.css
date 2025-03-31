@@ -350,17 +350,14 @@ h1 {
 }
 
 /* Archive specific styles */
+/* Новые стили для архива */
 #archive .task {
-    opacity: 0.8;
+    opacity: 0.9;
     background-color: rgba(245, 245, 245, 0.8);
 }
 
 #archive .task-content {
     color: var(--text-light);
-}
-
-#archive .task-actions {
-    gap: 0.25rem;
 }
 
 #archive .restore-btn {
@@ -371,14 +368,18 @@ h1 {
     color: var(--red);
 }
 
-/* Text overflow handling */
-.task-content, .subtask-text, #edit-input, #subtask-input {
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
+.empty-state#empty-archive {
+    display: none;
 }
 
-/* Responsive adjustments */
+.empty-state#empty-archive.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Адаптивные стили */
 @media (max-width: 480px) {
     .modal-actions {
         flex-direction: column;
