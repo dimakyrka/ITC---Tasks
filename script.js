@@ -300,6 +300,7 @@ function saveEdit() {
 }
 
 // Перемещение в архив
+// В функции moveToArchive (изменения)
 function moveToArchive() {
     if (currentEditIndex !== null && currentEditType) {
         tasksRef.transaction((currentData) => {
@@ -309,9 +310,11 @@ function moveToArchive() {
             let item;
             if (currentEditType === 'tasks') {
                 item = currentData.tasks[currentEditIndex];
+                item.type = 'task'; // Добавляем тип
                 currentData.tasks.splice(currentEditIndex, 1);
-            } else {
+            } else if (currentEditType === 'events') {
                 item = currentData.events[currentEditIndex];
+                item.type = 'event'; // Добавляем тип
                 currentData.events.splice(currentEditIndex, 1);
             }
             
@@ -321,6 +324,22 @@ function moveToArchive() {
         
         editModal.classList.remove('active');
     }
+}
+
+// В функции restoreFromArchive (изменения)
+function restoreFromArchive(index) {
+    tasksRef.transaction((currentData) => {
+        const item = currentData.archived[index];
+        if (!item.type) item.type = 'task'; // Значение по умолчанию
+        
+        const targetArray = item.type === 'event' ? 'events' : 'tasks';
+        
+        currentData[targetArray] = currentData[targetArray] || [];
+        currentData[targetArray].unshift(item);
+        currentData.archived.splice(index, 1);
+        
+        return currentData;
+    });
 }
 
 // Восстановление из архива
