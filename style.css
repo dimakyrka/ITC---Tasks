@@ -445,28 +445,72 @@ h1 {
     to { opacity: 1; transform: translateY(0); }
 }
 
-.subtask-item {
-    animation: fadeIn 0.3s ease-out forwards;
-}
-
-#subtasks-modal {
-    z-index: 1000;
-}
-
+/* Стили для модального окна подзадач */
 #subtasks-modal .modal-content {
     max-width: 500px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
+    padding: 0;
 }
 
-#subtasks-list {
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+    padding: 0.5rem;
+}
+
+.subtasks-container {
+    padding: 0 1.5rem;
     flex-grow: 1;
     overflow-y: auto;
 }
 
+#subtasks-list {
+    list-style: none;
+    padding: 0.5rem 0;
+}
+
 .subtasks-form {
-    margin-top: auto;
-    padding-top: 1rem;
+    padding: 1.5rem;
     border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Стили для подзадач */
+.subtask-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.subtask-checkbox {
+    margin-right: 0.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.subtask-text {
+    flex: 1;
+    word-break: break-word;
+    padding: 0.5rem 0;
+}
+
+.subtask-text.completed {
+    text-decoration: line-through;
+    color: var(--text-light);
 }
