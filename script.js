@@ -4,7 +4,7 @@ const firebaseConfig = {
     authDomain: "itc-tasks.firebaseapp.com",
     databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
     projectId: "itc-tasks",
-    storageBucket: "itc-tasks.firebasestorage.app",
+    storageBucket: "itc-tasks.appspot.com",
     messagingSenderId: "736776837496",
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
@@ -15,7 +15,6 @@ const database = firebase.database();
 const tasksRef = database.ref('tasks');
 
 // Состояния
-let currentEditType = null;
 let currentTab = 'tasks';
 let tasks = [];
 let events = [];
@@ -54,6 +53,20 @@ const subtaskInput = document.getElementById('subtask-input');
 const addSubtaskBtn = document.getElementById('add-subtask-btn');
 const closeSubtasksBtn = document.getElementById('close-subtasks');
 
+// Инициализация структуры данных
+const initializeDataStructure = () => {
+    tasksRef.once('value').then((snapshot) => {
+        if (!snapshot.exists()) {
+            tasksRef.set({
+                tasks: [],
+                events: [],
+                archived: []
+            });
+        }
+    });
+};
+initializeDataStructure();
+
 // Загрузка данных из Firebase
 tasksRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
@@ -67,39 +80,31 @@ tasksRef.on('value', (snapshot) => {
     updateEmptyStates();
 });
 
-// Отрисовка задач
+// Функции рендеринга
 function renderTasks() {
     tasksList.innerHTML = '';
-    
     tasks.forEach((task, index) => {
         const taskEl = createTaskElement(task, index, 'tasks');
         tasksList.appendChild(taskEl);
     });
-    
     updateEmptyStates();
 }
 
-// Отрисовка мероприятий
 function renderEvents() {
     eventsList.innerHTML = '';
-    
     events.forEach((event, index) => {
         const eventEl = createTaskElement(event, index, 'events');
         eventsList.appendChild(eventEl);
     });
-    
     updateEmptyStates();
 }
 
-// Отрисовка архива
 function renderArchive() {
     archiveList.innerHTML = '';
-    
     archived.forEach((item, index) => {
         const archivedEl = document.createElement('li');
         archivedEl.className = 'task';
         archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
-        archivedEl.dataset.index = index;
         
         archivedEl.innerHTML = `
             <div class="task-content">${item.text}</div>
@@ -119,8 +124,7 @@ function renderArchive() {
             </div>
         `;
         
-        archivedEl.querySelector('.restore-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
+        archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
             restoreFromArchive(index);
         });
         
@@ -131,7 +135,6 @@ function renderArchive() {
         
         archiveList.appendChild(archivedEl);
     });
-    
     updateEmptyStates();
 }
 
@@ -301,62 +304,52 @@ function saveEdit() {
 }
 
 // Перемещение в архив
+// Новая функция перемещения в архив
 function moveToArchive() {
-    if (currentEditIndex !== null && currentEditType) {
-        tasksRef.transaction((currentData) => {
-            currentData = currentData || {};
-            currentData.archived = currentData.archived || [];
-            
-            // Получаем элемент из соответствующего массива
-            const item = currentData[currentEditType][currentEditIndex];
-            
-            // Добавляем тип элемента перед перемещением
-            item.itemType = currentEditType; // 'tasks' или 'events'
-            
-            // Перемещаем в архив
-            currentData.archived.unshift(item);
-            
-            // Удаляем из исходного массива
-            currentData[currentEditType].splice(currentEditIndex, 1);
-            
-            return currentData;
-        }).then(() => {
-            editModal.classList.remove('active');
-            currentEditIndex = null;
-            currentEditType = null;
-        }).catch((error) => {
-            console.error("Ошибка при перемещении в архив:", error);
-        });
-    }
+    if (currentEditIndex === null || !currentEditType) return;
+
+    tasksRef.transaction((currentData) => {
+        if (!currentData) {
+            currentData = { tasks: [], events: [], archived: [] };
+        }
+
+        const itemToArchive = { 
+            ...currentData[currentEditType][currentEditIndex],
+            archivedAt: Date.now(),
+            originalType: currentEditType
+        };
+
+        currentData[currentEditType].splice(currentEditIndex, 1);
+        currentData.archived = currentData.archived || [];
+        currentData.archived.unshift(itemToArchive);
+
+        return currentData;
+    }).then(() => {
+        editModal.classList.remove('active');
+        currentEditIndex = null;
+        currentEditType = null;
+    }).catch((error) => {
+        console.error("Archive error:", error);
+    });
 }
 
-// Полностью переписываем функцию restoreFromArchive:
+// Новая функция восстановления из архива
 function restoreFromArchive(index) {
     tasksRef.transaction((currentData) => {
-        if (!currentData.archived || index >= currentData.archived.length) {
+        if (!currentData?.archived || index >= currentData.archived.length) {
             return currentData;
         }
-        
-        const archivedItem = currentData.archived[index];
-        
-        // Проверяем наличие типа элемента
-        if (!archivedItem.itemType) {
-            // Если тип не указан, считаем это задачей (для обратной совместимости)
-            archivedItem.itemType = 'tasks';
-        }
-        
-        // Создаем или получаем целевой массив
-        currentData[archivedItem.itemType] = currentData[archivedItem.itemType] || [];
-        
-        // Возвращаем элемент в нужный массив
-        currentData[archivedItem.itemType].unshift(archivedItem);
-        
-        // Удаляем из архива
+
+        const item = currentData.archived[index];
+        const targetType = item.originalType || 'tasks';
+
+        currentData[targetType] = currentData[targetType] || [];
+        currentData[targetType].unshift(item);
         currentData.archived.splice(index, 1);
-        
+
         return currentData;
     }).catch((error) => {
-        console.error("Ошибка при восстановлении из архива:", error);
+        console.error("Restore error:", error);
     });
 }
 
@@ -517,6 +510,9 @@ window.addEventListener('click', (e) => {
         subtasksModal.classList.remove('active');
     }
 });
+
+// Обновляем обработчики
+archiveBtn.addEventListener('click', moveToArchive);
 
 // Инициализация
 document.querySelector('.task-form').style.display = 'flex';
