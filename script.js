@@ -54,7 +54,6 @@ const addSubtaskBtn = document.getElementById('add-subtask-btn');
 const closeSubtasksBtn = document.getElementById('close-subtasks');
 const closeSubtasksTopBtn = document.getElementById('close-subtasks-top');
 
-
 // Инициализация структуры данных
 const initializeDataStructure = () => {
     tasksRef.once('value').then((snapshot) => {
@@ -82,47 +81,51 @@ tasksRef.on('value', (snapshot) => {
     updateEmptyStates();
 });
 
-// Функции рендеринга
+// Отрисовка задач
 function renderTasks() {
     tasksList.innerHTML = '';
+    
     tasks.forEach((task, index) => {
         const taskEl = createTaskElement(task, index, 'tasks');
         tasksList.appendChild(taskEl);
     });
+    
     updateEmptyStates();
 }
 
+// Отрисовка мероприятий
 function renderEvents() {
     eventsList.innerHTML = '';
+    
     events.forEach((event, index) => {
         const eventEl = createTaskElement(event, index, 'events');
         eventsList.appendChild(eventEl);
     });
+    
     updateEmptyStates();
 }
 
+// Отрисовка архива
 function renderArchive() {
     archiveList.innerHTML = '';
     
-    // Создаем заголовки для разделов
-    const tasksHeader = document.createElement('h3');
-    tasksHeader.className = 'archive-header';
-    tasksHeader.textContent = 'Архив задач';
-    archiveList.appendChild(tasksHeader);
+    // Задачи в архиве
+    const archivedTasksHeader = document.createElement('h3');
+    archivedTasksHeader.className = 'archive-header';
+    archivedTasksHeader.textContent = 'Архив задач';
+    archiveList.appendChild(archivedTasksHeader);
     
-    // Рендерим архивные задачи
     archived.filter(item => item.originalType === 'tasks').forEach((item, index) => {
         const archivedEl = createArchiveItem(item, index);
         archiveList.appendChild(archivedEl);
     });
     
-    // Заголовок для мероприятий
-    const eventsHeader = document.createElement('h3');
-    eventsHeader.className = 'archive-header';
-    eventsHeader.textContent = 'Архив мероприятий';
-    archiveList.appendChild(eventsHeader);
+    // Мероприятия в архиве
+    const archivedEventsHeader = document.createElement('h3');
+    archivedEventsHeader.className = 'archive-header';
+    archivedEventsHeader.textContent = 'Архив мероприятий';
+    archiveList.appendChild(archivedEventsHeader);
     
-    // Рендерим архивные мероприятия
     archived.filter(item => item.originalType === 'events').forEach((item, index) => {
         const archivedEl = createArchiveItem(item, index);
         archiveList.appendChild(archivedEl);
@@ -131,9 +134,63 @@ function renderArchive() {
     updateEmptyStates();
 }
 
+// Создание элемента задачи/мероприятия
+function createTaskElement(item, index, type) {
+    const taskEl = document.createElement('li');
+    taskEl.className = 'task';
+    taskEl.style.borderLeftColor = item.color || '#e5e7eb';
+    taskEl.setAttribute('draggable', 'true');
+    taskEl.dataset.index = index;
+    
+    taskEl.innerHTML = `
+        <div class="task-content">${item.text}</div>
+        <div class="task-actions">
+            <button class="btn-icon edit-btn" title="Редактировать">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>
+            <button class="btn-icon delete-btn" title="Удалить">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    // Обработчик клика по задаче (для подзадач)
+    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+        if (!e.target.closest('.task-actions') && type === 'tasks') {
+            openSubtasksModal(index);
+        }
+    });
+    
+    // Обработчики кнопок
+    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(index, type);
+    });
+    
+    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, type);
+    });
+    
+    // Drag and drop
+    taskEl.addEventListener('dragstart', handleDragStart);
+    taskEl.addEventListener('dragover', handleDragOver);
+    taskEl.addEventListener('drop', handleDrop);
+    taskEl.addEventListener('dragend', handleDragEnd);
+    
+    return taskEl;
+}
+
+// Создание элемента архива
 function createArchiveItem(item, index) {
     const archivedEl = document.createElement('li');
-    archivedEl.className = 'task';
+    archivedEl.className = 'task archived-item';
     archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
     
     archivedEl.innerHTML = `
@@ -164,59 +221,6 @@ function createArchiveItem(item, index) {
     });
     
     return archivedEl;
-}
-
-
-// Создание элемента задачи/мероприятия
-function createTaskElement(item, index, type) {
-    const taskEl = document.createElement('li');
-    taskEl.className = 'task';
-    taskEl.style.borderLeftColor = item.color || '#e5e7eb';
-    taskEl.setAttribute('draggable', 'true');
-    taskEl.dataset.index = index;
-    
-    taskEl.innerHTML = `
-        <div class="task-content">${item.text}</div>
-        <div class="task-actions">
-            <button class="btn-icon edit-btn" title="Редактировать">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            </button>
-            <button class="btn-icon delete-btn" title="Удалить">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-        </div>
-    `;
-    
-    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
-        if (!e.target.closest('.task-actions')) {
-            openSubtasksModal(index);
-        }
-    });
-    
-    
-    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEditModal(index, type);
-    });
-    
-    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDeleteModal(index, type);
-    });
-    
-    // Drag and drop
-    taskEl.addEventListener('dragstart', handleDragStart);
-    taskEl.addEventListener('dragover', handleDragOver);
-    taskEl.addEventListener('drop', handleDrop);
-    taskEl.addEventListener('dragend', handleDragEnd);
-    
-    return taskEl;
 }
 
 // Обновление пустых состояний
@@ -268,9 +272,11 @@ function addItem() {
                 currentData.events.unshift(newItem);
             }
             return currentData;
+        }).then(() => {
+            taskInput.value = '';
+        }).catch(error => {
+            console.error('Error adding item:', error);
         });
-        
-        taskInput.value = '';
     }
 }
 
@@ -327,14 +333,15 @@ function saveEdit() {
                 currentData.archived[currentEditIndex].color = selectedColor;
             }
             return currentData;
+        }).then(() => {
+            editModal.classList.remove('active');
+        }).catch(error => {
+            console.error('Error saving edit:', error);
         });
-        
-        editModal.classList.remove('active');
     }
 }
 
 // Перемещение в архив
-// Новая функция перемещения в архив
 function moveToArchive() {
     if (currentEditIndex === null || !currentEditType) return;
 
@@ -358,12 +365,12 @@ function moveToArchive() {
         editModal.classList.remove('active');
         currentEditIndex = null;
         currentEditType = null;
-    }).catch((error) => {
+    }).catch(error => {
         console.error("Archive error:", error);
     });
 }
 
-// Новая функция восстановления из архива
+// Восстановление из архива
 function restoreFromArchive(index) {
     tasksRef.transaction((currentData) => {
         if (!currentData?.archived || index >= currentData.archived.length) {
@@ -378,7 +385,7 @@ function restoreFromArchive(index) {
         currentData.archived.splice(index, 1);
 
         return currentData;
-    }).catch((error) => {
+    }).catch(error => {
         console.error("Restore error:", error);
     });
 }
@@ -401,10 +408,12 @@ confirmDeleteBtn.addEventListener('click', () => {
                 currentData.archived.splice(currentDeleteIndex, 1);
             }
             return currentData;
+        }).then(() => {
+            deleteModal.classList.remove('active');
+            currentDeleteIndex = null;
+        }).catch(error => {
+            console.error('Error deleting item:', error);
         });
-        
-        deleteModal.classList.remove('active');
-        currentDeleteIndex = null;
     }
 });
 
@@ -414,10 +423,7 @@ cancelDeleteBtn.addEventListener('click', () => {
 });
 
 // Подзадачи
-// Функция открытия модального окна подзадач
 function openSubtasksModal(index) {
-    console.log('Opening subtasks for task index:', index);
-    
     if (index === null || index === undefined || !tasks[index]) {
         console.error('Invalid task index:', index);
         return;
@@ -429,104 +435,99 @@ function openSubtasksModal(index) {
     subtasksList.innerHTML = '';
     subtaskInput.value = '';
     
-    // Загружаем подзадачи
     if (task.subtasks && task.subtasks.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
             addSubtaskToDOM(subtask, subIndex);
         });
     }
     
-    // Показываем модальное окно
     subtasksModal.classList.add('active');
     subtaskInput.focus();
 }
 
-function handleEscKey(e) {
-    if (e.key === 'Escape') {
-        subtasksModal.classList.remove('active');
-        document.removeEventListener('keydown', handleEscKey);
-    }
-}
-
-// Функция добавления подзадачи в DOM
 function addSubtaskToDOM(subtask, index) {
     const subtaskEl = document.createElement('li');
     subtaskEl.className = 'subtask-item';
-    subtaskEl.dataset.index = index;
-    
     subtaskEl.innerHTML = `
         <input type="checkbox" class="subtask-checkbox" 
-               ${subtask.completed ? 'checked' : ''} 
-               data-index="${index}">
-        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">
+               ${subtask.completed ? 'checked' : ''}
+               id="subtask-${index}">
+        <label for="subtask-${index}" class="subtask-text ${subtask.completed ? 'completed' : ''}">
             ${subtask.text}
-        </span>
+        </label>
     `;
     
-    // Обработчик изменения статуса
-    subtaskEl.querySelector('.subtask-checkbox').addEventListener('change', function() {
-        const subIndex = parseInt(this.dataset.index);
-        toggleSubtaskCompletion(subIndex);
+    const checkbox = subtaskEl.querySelector('.subtask-checkbox');
+    checkbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        
+        // Оптимистичное обновление UI
+        subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
+        
+        // Обновление в Firebase
+        tasksRef.transaction((currentData) => {
+            if (currentData && currentData.tasks[currentTaskWithSubtasks]?.subtasks?.[index]) {
+                currentData.tasks[currentTaskWithSubtasks].subtasks[index].completed = isChecked;
+            }
+            return currentData;
+        }).catch(error => {
+            console.error('Error updating subtask:', error);
+            // Откатываем изменения при ошибке
+            checkbox.checked = !isChecked;
+            subtaskEl.querySelector('label').classList.toggle('completed');
+        });
     });
     
     subtasksList.appendChild(subtaskEl);
 }
 
-closeSubtasksBtn.addEventListener('click', () => {
-    subtasksModal.classList.remove('active');
-    document.removeEventListener('keydown', handleEscKey);
-});
+function addSubtask() {
+    const text = subtaskInput.value.trim();
+    if (!text || currentTaskWithSubtasks === null) return;
 
+    const newSubtask = {
+        text: text,
+        completed: false,
+        createdAt: Date.now()
+    };
+
+    // Оптимистичное обновление UI
+    const newIndex = tasks[currentTaskWithSubtasks].subtasks?.length || 0;
+    addSubtaskToDOM(newSubtask, newIndex);
+    subtaskInput.value = '';
+    subtaskInput.focus();
+
+    // Обновление в Firebase
+    tasksRef.transaction((currentData) => {
+        if (!currentData) {
+            currentData = { tasks: [], events: [], archived: [] };
+        }
+        
+        if (!currentData.tasks[currentTaskWithSubtasks].subtasks) {
+            currentData.tasks[currentTaskWithSubtasks].subtasks = [];
+        }
+        
+        currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
+        return currentData;
+    }).catch((error) => {
+        console.error('Error adding subtask:', error);
+        // Откатываем изменения в UI при ошибке
+        subtasksList.lastChild.remove();
+    });
+}
+
+// Обработчики событий подзадач
 addSubtaskBtn.addEventListener('click', addSubtask);
 subtaskInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addSubtask();
 });
 
-function addSubtask() {
-    const text = subtaskInput.value.trim();
-    if (!text || currentTaskWithSubtasks === null) return;
-    
-    const newSubtask = {
-        text: text,
-        completed: false
-    };
-    
-    // Оптимистичное обновление UI
-    const newIndex = tasks[currentTaskWithSubtasks].subtasks?.length || 0;
-    addSubtaskToDOM(newSubtask, newIndex);
-    subtaskInput.value = '';
-    
-    // Обновление в Firebase
-    tasksRef.transaction((currentData) => {
-        if (!currentData.tasks[currentTaskWithSubtasks].subtasks) {
-            currentData.tasks[currentTaskWithSubtasks].subtasks = [];
-        }
-        currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
-        return currentData;
-    }).catch(error => {
-        console.error('Error adding subtask:', error);
-        // Откат UI при ошибке
-        subtasksList.lastChild.remove();
-    });
-}
-function toggleSubtaskCompletion(subIndex) {
-    if (currentTaskWithSubtasks === null) return;
-    
-    tasksRef.transaction((currentData) => {
-        const subtask = currentData.tasks[currentTaskWithSubtasks].subtasks[subIndex];
-        subtask.completed = !subtask.completed;
-        return currentData;
-    }).then(() => {
-        // Обновляем класс в UI после успешного сохранения
-        const subtaskEl = subtasksList.children[subIndex];
-        const textSpan = subtaskEl.querySelector('.subtask-text');
-        textSpan.classList.toggle('completed');
-    }).catch(error => {
-        console.error('Error toggling subtask:', error);
-        // Возвращаем чекбокс в исходное состояние
-        const checkbox = subtasksList.children[subIndex].querySelector('.subtask-checkbox');
-        checkbox.checked = !checkbox.checked;
-    });
+closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+
+function closeSubtasksModal() {
+    subtasksModal.classList.remove('active');
+    currentTaskWithSubtasks = null;
 }
 
 // Drag and Drop
@@ -574,7 +575,7 @@ function swapItems(fromIndex, toIndex) {
     }
 }
 
-// Закрытие модалок по клику вне области
+// Закрытие модалок
 window.addEventListener('click', (e) => {
     if (e.target === editModal) {
         editModal.classList.remove('active');
@@ -583,25 +584,21 @@ window.addEventListener('click', (e) => {
         deleteModal.classList.remove('active');
     }
     if (e.target === subtasksModal) {
-        subtasksModal.classList.remove('active');
+        closeSubtasksModal();
     }
 });
 
-// Обновляем обработчики
-archiveBtn.addEventListener('click', moveToArchive);
-// Обработчики событий
-addSubtaskBtn.addEventListener('click', addSubtask);
-subtaskInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addSubtask();
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (editModal.classList.contains('active')) {
+            editModal.classList.remove('active');
+        } else if (deleteModal.classList.contains('active')) {
+            deleteModal.classList.remove('active');
+        } else if (subtasksModal.classList.contains('active')) {
+            closeSubtasksModal();
+        }
+    }
 });
-
-closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
-closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
-
-function closeSubtasksModal() {
-    subtasksModal.classList.remove('active');
-    currentTaskWithSubtasks = null;
-}
 
 // Инициализация
 document.querySelector('.task-form').style.display = 'flex';
