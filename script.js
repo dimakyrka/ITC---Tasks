@@ -101,42 +101,69 @@ function renderEvents() {
 
 function renderArchive() {
     archiveList.innerHTML = '';
-    archived.forEach((item, index) => {
-        const archivedEl = document.createElement('li');
-        archivedEl.className = 'task';
-        archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
-        
-        archivedEl.innerHTML = `
-            <div class="task-content">${item.text}</div>
-            <div class="task-actions">
-                <button class="btn-icon restore-btn" title="Восстановить">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                </button>
-                <button class="btn-icon delete-btn" title="Удалить">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-        
-        archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
-            restoreFromArchive(index);
-        });
-        
-        archivedEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openDeleteModal(index, 'archived');
-        });
-        
+    
+    // Создаем заголовки для разделов
+    const tasksHeader = document.createElement('h3');
+    tasksHeader.className = 'archive-header';
+    tasksHeader.textContent = 'Архив задач';
+    archiveList.appendChild(tasksHeader);
+    
+    // Рендерим архивные задачи
+    archived.filter(item => item.originalType === 'tasks').forEach((item, index) => {
+        const archivedEl = createArchiveItem(item, index);
         archiveList.appendChild(archivedEl);
     });
+    
+    // Заголовок для мероприятий
+    const eventsHeader = document.createElement('h3');
+    eventsHeader.className = 'archive-header';
+    eventsHeader.textContent = 'Архив мероприятий';
+    archiveList.appendChild(eventsHeader);
+    
+    // Рендерим архивные мероприятия
+    archived.filter(item => item.originalType === 'events').forEach((item, index) => {
+        const archivedEl = createArchiveItem(item, index);
+        archiveList.appendChild(archivedEl);
+    });
+    
     updateEmptyStates();
 }
+
+function createArchiveItem(item, index) {
+    const archivedEl = document.createElement('li');
+    archivedEl.className = 'task';
+    archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
+    
+    archivedEl.innerHTML = `
+        <div class="task-content">${item.text}</div>
+        <div class="task-actions">
+            <button class="btn-icon restore-btn" title="Восстановить">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </button>
+            <button class="btn-icon delete-btn" title="Удалить">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
+        restoreFromArchive(index);
+    });
+    
+    archivedEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, 'archived');
+    });
+    
+    return archivedEl;
+}
+
 
 // Создание элемента задачи/мероприятия
 function createTaskElement(item, index, type) {
@@ -432,14 +459,17 @@ function addSubtask() {
             completed: false
         };
         
+        // Оптимистичное обновление UI
+        addSubtaskToDOM(newSubtask, tasks[currentTaskWithSubtasks].subtasks?.length || 0);
+        subtaskInput.value = '';
+        
+        // Обновление в Firebase
         tasksRef.transaction((currentData) => {
             currentData.tasks[currentTaskWithSubtasks].subtasks = 
                 currentData.tasks[currentTaskWithSubtasks].subtasks || [];
             currentData.tasks[currentTaskWithSubtasks].subtasks.push(newSubtask);
             return currentData;
         });
-        
-        subtaskInput.value = '';
     }
 }
 
