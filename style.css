@@ -348,3 +348,28 @@ h1 {
     text-decoration: line-through;
     color: var(--text-light);
 }
+
+/* Для задач и мероприятий */
+.task-content {
+    flex: 1;
+    font-weight: 500;
+    padding-right: 0.5rem;
+    word-break: break-word;  /* Перенос длинных слов */
+    overflow-wrap: break-word; /* Перенос по словам */
+    white-space: normal; /* Разрешаем перенос строк */
+}
+
+/* Для подзадач */
+.subtask-text {
+    flex: 1;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+/* Для модального окна редактирования */
+#edit-input, #subtask-input {
+    word-break: break-word;
+    white-space: normal;
+    width: 100%;
+}
