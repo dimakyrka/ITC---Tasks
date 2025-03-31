@@ -368,11 +368,18 @@ function updateInputPlaceholder() {
 }
 
 function toggleInputField() {
-    const taskForm = document.querySelector('.task-form');
+    const taskForm = document.getElementById('task-form');
+    const archiveTab = document.getElementById('archive-tab');
+    
     if (currentTab === 'archive') {
-        taskForm.style.display = 'none';
+        if (taskForm.parentNode === archiveTab) {
+            document.body.insertBefore(taskForm, archiveTab);
+        }
     } else {
-        taskForm.style.display = 'flex';
+        const activeTab = document.getElementById(`${currentTab}-tab');
+        if (taskForm.parentNode !== activeTab) {
+            activeTab.insertBefore(taskForm, activeTab.firstChild);
+        }
     }
 }
 
