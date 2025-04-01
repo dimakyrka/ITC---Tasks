@@ -590,7 +590,7 @@ window.addEventListener('click', (e) => {
     if (e.target === subtasksModal) {
         closeSubtasksModal();
     }
-}
+});
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (editModal.classList.contains('active')) {
