@@ -531,7 +531,7 @@ closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
 function closeSubtasksModal() {
     subtasksModal.classList.remove('active');
     document.removeEventListener('keydown', handleEscKey);
-    currentTaskWithSubtasks = null;
+    currentTaskWithSubtasks = false;
 }
 
 function handleEscKey(e) {
