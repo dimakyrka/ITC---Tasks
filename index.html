@@ -8,6 +8,20 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+
+
+    <!-- Добавляем этот код перед закрывающим </head> -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+            if (tgUser) {
+                localStorage.setItem('tg_user_id', tgUser.id);
+                // Можно сразу передать в состояние приложения
+                window.tgUserId = tgUser.id;
+            }
+        });
+    </script>
 </head>
 <body>
     <header>
