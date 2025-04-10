@@ -657,12 +657,28 @@ function showAccessDenied() {
 async function init() {
     initializeDataStructure();
     
-    // Получаем ID пользователя из Telegram или localStorage
-    const tgUser = window.Telegram.WebApp?.initDataUnsafe?.user;
-    const userId = tgUser?.id || localStorage.getItem('tg_user_id');
+    // Проверяем, запущено ли в Telegram WebApp
+    const isTelegramWebApp = !!window.Telegram?.WebApp;
     
-    if (userId) {
-        state.currentUser = userId;
+    // Получаем ID пользователя
+    let userId;
+    if (isTelegramWebApp) {
+        const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+        userId = tgUser?.id;
+    } else {
+        // Для тестирования вне Telegram можно использовать параметр URL
+        const urlParams = new URLSearchParams(window.location.search);
+        userId = urlParams.get('user_id') || localStorage.getItem('tg_user_id');
+    }
+    
+    if (!userId) {
+        showAccessDenied();
+        return;
+    }
+    
+    state.currentUser = userId;
+    
+    try {
         await loadUserPermissions(userId);
         
         // Загрузка данных из Firebase
@@ -676,8 +692,9 @@ async function init() {
         
         initEventListeners();
         DOM.taskForm.style.display = 'flex';
-    } else {
-        // Если пользователь не авторизован, показываем сообщение
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
         showAccessDenied();
     }
 }
