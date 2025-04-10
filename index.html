@@ -48,85 +48,67 @@
     </style>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tgWebApp = window.Telegram?.WebApp;
-            const authMessage = document.getElementById('auth-message');
-            const appContent = document.getElementById('app-content');
-            
-            if (tgWebApp) {
-                tgWebApp.expand(); // Разворачиваем приложение на весь экран
-                const tgUser = tgWebApp.initDataUnsafe?.user;
-                
-                if (tgUser) {
-                    console.log('Telegram user authenticated:', tgUser);
-                    authMessage.style.display = 'none';
-                    appContent.style.display = 'block';
-                    
-                    // Сохраняем данные пользователя
-                    localStorage.setItem('tg_user_id', tgUser.id);
-                    localStorage.setItem('tg_user_data', JSON.stringify(tgUser));
-                    window.tgUserId = tgUser.id;
-                    
-                    // Инициализация Firebase и приложения
-                    initializeFirebase().then(() => {
-                        initApp();
-                    });
-                    
-                    // Настройка кнопки "Назад" в Telegram
-                    if (!tgWebApp.isInline) {
-                        tgWebApp.BackButton.show();
-                        tgWebApp.BackButton.onClick(() => tgWebApp.close());
-                    }
-                } else {
-                    console.log('User not authenticated in Telegram');
-                    authMessage.style.display = 'flex';
-                    appContent.style.display = 'none';
-                }
-            } else {
-                console.log('Not in Telegram WebApp environment');
-                // Режим разработки - разрешаем доступ с предупреждением
-                authMessage.innerHTML = `
-                    <div class="access-denied">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <h2>Режим разработки</h2>
-                        <p>Для полного функционала откройте приложение через Telegram бота</p>
-                        <button id="dev-continue" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
-                            Продолжить в тестовом режиме
-                        </button>
-                    </div>
-                `;
-                
-                document.getElementById('dev-continue')?.addEventListener('click', () => {
-                    localStorage.setItem('tg_user_id', 'DEV_USER_ID');
-                    authMessage.style.display = 'none';
-                    appContent.style.display = 'block';
-                    initializeFirebase().then(() => {
-                        initApp();
-                    });
-                });
-            }
-        });
+       document.addEventListener('DOMContentLoaded', () => {
+        const tgWebApp = window.Telegram?.WebApp;
         
-        function initializeFirebase() {
-            return new Promise((resolve) => {
-                // Ваша конфигурация Firebase
-                const firebaseConfig = {
-                    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
-                    authDomain: "itc-tasks.firebaseapp.com",
-                    databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
-                    projectId: "itc-tasks",
-                    storageBucket: "itc-tasks.appspot.com",
-                    messagingSenderId: "736776837496",
-                    appId: "1:736776837496:web:27341fe39226d1b8d0108d"
-                };
+        if (tgWebApp) {
+            tgWebApp.expand();
+            tgWebApp.ready();
+            
+            const tgUser = tgWebApp.initDataUnsafe?.user;
+            console.log('Telegram User:', tgUser); // Для отладки
+            
+            if (tgUser) {
+                localStorage.setItem('tg_user_id', tgUser.id);
+                localStorage.setItem('tg_user_data', JSON.stringify(tgUser));
+                window.tgUserId = tgUser.id;
                 
-                // Инициализация Firebase
-                firebase.initializeApp(firebaseConfig);
-                resolve();
-            });
+                // Показываем интерфейс приложения
+                document.getElementById('auth-message').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                
+                // Инициализируем Firebase и приложение
+                initializeFirebase().then(initApp);
+            } else {
+                // Если пользователь не определён, показываем сообщение
+                showTelegramAuthMessage();
+            }
+        } else {
+            console.log('Not in Telegram WebApp');
+            showNonTelegramMessage();
         }
+    });
+
+    function showTelegramAuthMessage() {
+        document.getElementById('auth-message').innerHTML = `
+            <div class="access-denied">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path>
+                </svg>
+                <h2>Требуется авторизация</h2>
+                <p>Пожалуйста, выполните следующие шаги:</p>
+                <ol>
+                    <li>Закройте это окно</li>
+                    <li>Вернитесь в бота Telegram</li>
+                    <li>Нажмите кнопку "Открыть ITC Tasks"</li>
+                </ol>
+                <button onclick="location.reload()" class="retry-btn">Попробовать снова</button>
+            </div>
+        `;
+    }
+
+    function showNonTelegramMessage() {
+        document.getElementById('auth-message').innerHTML = `
+            <div class="access-denied">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 0 1 1.563-3.029m5.858.908a3 3 0 1 1 4.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0 1 12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 0 1-4.132 5.411m0 0L21 21"></path>
+                </svg>
+                <h2>Приложение доступно только в Telegram</h2>
+                <p>Пожалуйста, откройте его через Telegram бота</p>
+                <p>Используйте команду /start в боте</p>
+            </div>
+        `;
+    }
     </script>
 </head>
 <body>
