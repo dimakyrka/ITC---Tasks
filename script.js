@@ -25,7 +25,14 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null
+    currentEditType: null,
+    currentUser: null,
+    userPermissions: {
+        edit: false,
+        delete: false,
+        archive: false,
+        manageSubtasks: false
+    }
 };
 
 // ========== DOM элементы ==========
@@ -124,6 +131,24 @@ function renderArchive() {
         });
 }
 
+// Функция для загрузки прав пользователя
+async function loadUserPermissions(userId) {
+    return new Promise((resolve) => {
+        database.ref('users/' + userId).once('value').then((snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                state.userPermissions = data.permissions || {
+                    edit: false,
+                    delete: false,
+                    archive: false,
+                    manageSubtasks: false
+                };
+            }
+            resolve();
+        }).catch(() => resolve());
+    });
+}
+
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
     const taskEl = document.createElement('li');
@@ -132,46 +157,52 @@ function createTaskElement(item, index, type) {
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
     
+    // Показываем кнопки действий только если у пользователя есть соответствующие права
+    const showActions = state.userPermissions.edit || state.userPermissions.delete || state.userPermissions.archive;
+    
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
+        ${showActions ? `
         <div class="task-actions">
+            ${state.userPermissions.edit ? `
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
-            </button>
+            </button>` : ''}
+            ${state.userPermissions.delete ? `
             <button class="btn-icon delete-btn" title="Удалить">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
-            </button>
-        </div>
+            </button>` : ''}
+        </div>` : ''}
     `;
     
-    // Обработчики событий
-    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
-        if (!e.target.closest('.task-actions') && type === 'tasks') {
-            openSubtasksModal(index);
-        }
-    });
+    // Обработчики событий (только если есть права)
+    if (state.userPermissions.edit) {
+        taskEl.querySelector('.edit-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditModal(index, type);
+        });
+    }
     
-    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEditModal(index, type);
-    });
+    if (state.userPermissions.delete) {
+        taskEl.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDeleteModal(index, type);
+        });
+    }
     
-    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDeleteModal(index, type);
-    });
-    
-    // Drag and Drop
-    taskEl.addEventListener('dragstart', handleDragStart);
-    taskEl.addEventListener('dragover', handleDragOver);
-    taskEl.addEventListener('drop', handleDrop);
-    taskEl.addEventListener('dragend', handleDragEnd);
+    // Drag and Drop (только если есть права на редактирование)
+    if (state.userPermissions.edit) {
+        taskEl.addEventListener('dragstart', handleDragStart);
+        taskEl.addEventListener('dragover', handleDragOver);
+        taskEl.addEventListener('drop', handleDrop);
+        taskEl.addEventListener('dragend', handleDragEnd);
+    }
     
     return taskEl;
 }
@@ -213,6 +244,10 @@ function createArchiveItem(item, index) {
 
 // ========== Функции работы с данными ==========
 function addItem() {
+    if (!state.currentUser) {
+        showAccessDenied();
+        return;
+    }
     const text = DOM.taskInput.value.trim();
     if (!text) return;
 
@@ -320,6 +355,7 @@ function deleteItem() {
 
 // ========== Функции подзадач ==========
 function openSubtasksModal(index) {
+    if (!state.userPermissions.manageSubtasks) return;
     if (index === null || index === undefined || !state.tasks[index]) {
         console.error('Invalid task index:', index);
         return;
@@ -591,9 +627,32 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
+// Функция для показа сообщения об отсутствии доступа
+function showAccessDenied() {
+    document.body.innerHTML = `
+        <div class="access-denied">
+            <h2>Доступ запрещен</h2>
+            <p>Для использования приложения необходимо авторизоваться через Telegram</p>
+        </div>
+    `;
+}
+
 // ========== Инициализация приложения ==========
 function init() {
-    initializeDataStructure();
+     initializeDataStructure();
+    
+    // Получаем ID пользователя из Telegram или localStorage
+    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    const userId = tgUser?.id || localStorage.getItem('tg_user_id');
+    
+    if (userId) {
+        state.currentUser = userId;
+        await loadUserPermissions(userId);
+    } else {
+        // Если пользователь не авторизован, показываем сообщение
+        showAccessDenied();
+        return;
+    }
     
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
