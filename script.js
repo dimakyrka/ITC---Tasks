@@ -638,7 +638,7 @@ function showAccessDenied() {
 }
 
 // ========== Инициализация приложения ==========
-function init() {
+async function init() {
      initializeDataStructure();
     
     // Получаем ID пользователя из Telegram или localStorage
