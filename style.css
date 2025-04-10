@@ -529,18 +529,3 @@ h1 {
     color: var(--text-light);
     font-size: 1.1rem;
 }
-
-.retry-btn {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: #6366f1;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.retry-btn:hover {
-    background: #4f46e5;
-}
