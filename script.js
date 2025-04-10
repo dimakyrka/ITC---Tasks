@@ -133,20 +133,35 @@ function renderArchive() {
 
 // Функция для загрузки прав пользователя
 async function loadUserPermissions(userId) {
-    return new Promise((resolve) => {
-        database.ref('users/' + userId).once('value').then((snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                state.userPermissions = data.permissions || {
-                    edit: false,
-                    delete: false,
-                    archive: false,
-                    manageSubtasks: false
-                };
-            }
-            resolve();
-        }).catch(() => resolve());
-    });
+    try {
+        const snapshot = await database.ref('users/' + userId).once('value');
+        const data = snapshot.val();
+        if (data) {
+            state.userPermissions = {
+                edit: data.permissions?.edit || false,
+                delete: data.permissions?.delete || false,
+                archive: data.permissions?.archive || false,
+                manageSubtasks: data.permissions?.manageSubtasks || false
+            };
+        } else {
+            // Если запись о пользователе не найдена, устанавливаем права по умолчанию
+            state.userPermissions = {
+                edit: false,
+                delete: false,
+                archive: false,
+                manageSubtasks: false
+            };
+        }
+    } catch (error) {
+        console.error('Error loading user permissions:', error);
+        // В случае ошибки устанавливаем права по умолчанию
+        state.userPermissions = {
+            edit: false,
+            delete: false,
+            archive: false,
+            manageSubtasks: false
+        };
+    }
 }
 
 // ========== Создание элементов DOM ==========
@@ -638,34 +653,39 @@ function showAccessDenied() {
 }
 
 // ========== Инициализация приложения ==========
+// ========== Инициализация приложения ==========
 async function init() {
-     initializeDataStructure();
+    initializeDataStructure();
     
     // Получаем ID пользователя из Telegram или localStorage
-    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    const tgUser = window.Telegram.WebApp?.initDataUnsafe?.user;
     const userId = tgUser?.id || localStorage.getItem('tg_user_id');
     
     if (userId) {
         state.currentUser = userId;
         await loadUserPermissions(userId);
+        
+        // Загрузка данных из Firebase
+        tasksRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            state.tasks = data.tasks || [];
+            state.events = data.events || [];
+            state.archived = data.archived || [];
+            renderAll();
+        });
+        
+        initEventListeners();
+        DOM.taskForm.style.display = 'flex';
     } else {
         // Если пользователь не авторизован, показываем сообщение
         showAccessDenied();
-        return;
     }
-    
-    // Загрузка данных из Firebase
-    tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
-        renderAll();
-    });
-    
-    initEventListeners();
-    DOM.taskForm.style.display = 'flex';
 }
 
 // Запуск приложения
-init();
+document.addEventListener('DOMContentLoaded', () => {
+    init().catch(error => {
+        console.error('Initialization error:', error);
+        showAccessDenied();
+    });
+});
