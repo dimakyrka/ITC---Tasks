@@ -8,200 +8,132 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+
+
+    <!-- Добавляем этот код перед закрывающим </head> -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <style>
-        .access-denied {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            text-align: center;
-            padding: 2rem;
-            background-color: #f9fafb;
-        }
-        
-        .access-denied h2 {
-            color: #ef4444;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-        
-        .access-denied p {
-            color: #6b7280;
-            font-size: 1rem;
-            margin: 0.5rem 0;
-            max-width: 300px;
-        }
-        
-        .access-denied svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 1rem;
-            color: #ef4444;
-        }
-        
-        #app-content {
-            display: none; /* Скрыто по умолчанию */
-        }
-    </style>
-
     <script>
-       document.addEventListener('DOMContentLoaded', () => {
-        const tgWebApp = window.Telegram?.WebApp;
-        
-        if (tgWebApp) {
-            tgWebApp.expand();
-            tgWebApp.ready();
-            
-            const tgUser = tgWebApp.initDataUnsafe?.user;
-            console.log('Telegram User:', tgUser); // Для отладки
-            
+        document.addEventListener('DOMContentLoaded', () => {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
             if (tgUser) {
                 localStorage.setItem('tg_user_id', tgUser.id);
-                localStorage.setItem('tg_user_data', JSON.stringify(tgUser));
+                // Можно сразу передать в состояние приложения
                 window.tgUserId = tgUser.id;
-                
-                // Показываем интерфейс приложения
-                document.getElementById('auth-message').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                
-                // Инициализируем Firebase и приложение
-                initializeFirebase().then(initApp);
-            } else {
-                // Если пользователь не определён, показываем сообщение
-                showTelegramAuthMessage();
             }
-        } else {
-            console.log('Not in Telegram WebApp');
-            showNonTelegramMessage();
-        }
-    });
-
-    function showTelegramAuthMessage() {
-        document.getElementById('auth-message').innerHTML = `
-            <div class="access-denied">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path>
-                </svg>
-                <h2>Требуется авторизация</h2>
-                <p>Пожалуйста, выполните следующие шаги:</p>
-                <ol>
-                    <li>Закройте это окно</li>
-                    <li>Вернитесь в бота Telegram</li>
-                    <li>Нажмите кнопку "Открыть ITC Tasks"</li>
-                </ol>
-                <button onclick="location.reload()" class="retry-btn">Попробовать снова</button>
-            </div>
-        `;
-    }
-
-    function showNonTelegramMessage() {
-        document.getElementById('auth-message').innerHTML = `
-            <div class="access-denied">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 0 1 1.563-3.029m5.858.908a3 3 0 1 1 4.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0 1 12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 0 1-4.132 5.411m0 0L21 21"></path>
-                </svg>
-                <h2>Приложение доступно только в Telegram</h2>
-                <p>Пожалуйста, откройте его через Telegram бота</p>
-                <p>Используйте команду /start в боте</p>
-            </div>
-        `;
-    }
+        });
     </script>
 </head>
 <body>
-    <!-- Сообщение об авторизации -->
-    <div id="auth-message" class="access-denied">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path>
-        </svg>
-        <h2>Требуется авторизация</h2>
-        <p>Пожалуйста, откройте это приложение через Telegram бота</p>
-        <p>Используйте команду /start в боте</p>
+    <header>
+        <h1>ITC Tasks</h1>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tasks">Задачи</button>
+            <button class="tab-btn" data-tab="events">Мероприятия</button>
+            <button class="tab-btn" data-tab="archive">Архив</button>
+        </div>
+    </header>
+    
+    <div class="task-form">
+        <input type="text" id="task-input" placeholder="Добавь новую задачу..." autocomplete="off">
+        <button class="add-btn" id="add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
+    </div>
+    
+    <div class="tab-content active" id="tasks-tab">
+        <ul id="tasks"></ul>
+        <div class="empty-state" id="empty-tasks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Задач пока нет</h3>
+            <p>Добавь задачу, чтобы начать работу</p>
+        </div>
+    </div>
+    
+    <div class="tab-content" id="events-tab">
+        <ul id="events"></ul>
+        <div class="empty-state" id="empty-events">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Мероприятий пока нет</h3>
+            <p>Добавь мероприятие, чтобы начать работу</p>
+        </div>
     </div>
 
-    <!-- Основное содержимое приложения -->
-    <div id="app-content">
-        <header>
-            <h1>ITC Tasks</h1>
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="tasks">Задачи</button>
-                <button class="tab-btn" data-tab="events">Мероприятия</button>
-                <button class="tab-btn" data-tab="archive">Архив</button>
-            </div>
-        </header>
-        
-        <div class="task-form">
-            <input type="text" id="task-input" placeholder="Добавь новую задачу..." autocomplete="off">
-            <button class="add-btn" id="add-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
+    <div class="tab-content" id="archive-tab">
+        <ul id="archive"></ul>
+        <div class="empty-state" id="empty-archive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+            </svg>
+            <h3>Архив пуст</h3>
+            <p>Здесь будут отображаться архивные задачи и мероприятия</p>
         </div>
-        
-        <div class="tab-content active" id="tasks-tab">
-            <ul id="tasks"></ul>
-            <div class="empty-state" id="empty-tasks">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-                </svg>
-                <h3>Задач пока нет</h3>
-                <p>Добавь задачу, чтобы начать работу</p>
+    </div>
+
+    <!-- Модальное окно подзадач -->
+    <div class="modal" id="subtasks-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="subtasks-title">Задача</h2>
+                <button class="close-modal-btn" id="close-subtasks-top">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-        </div>
-        
-        <div class="tab-content" id="events-tab">
-            <ul id="events"></ul>
-            <div class="empty-state" id="empty-events">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-                </svg>
-                <h3>Мероприятий пока нет</h3>
-                <p>Добавь мероприятие, чтобы начать работу</p>
+            <div class="subtasks-container">
+                <ul id="subtasks-list"></ul>
+            </div>
+            <div class="subtasks-form">
+                <input type="text" id="subtask-input" placeholder="Добавить подзадачу..." autocomplete="off">
+                <button class="add-btn small" id="add-subtask-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
         </div>
+    </div>
 
-        <div class="tab-content" id="archive-tab">
-            <ul id="archive"></ul>
-            <div class="empty-state" id="empty-archive">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-                </svg>
-                <h3>Архив пуст</h3>
-                <p>Здесь будут отображаться архивные задачи и мероприятия</p>
+    <!-- Модальное окно редактирования -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <h2>Редактировать</h2>
+            <input type="text" id="edit-input" class="task-input">
+            <div class="color-picker">
+                <div class="color-option selected" data-color="#e5e7eb" style="background: #e5e7eb;"></div>
+                <div class="color-option" data-color="#ef4444" style="background: #ef4444;"></div>
+                <div class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                <div class="color-option" data-color="#10b981" style="background: #10b981;"></div>
+                <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
+            </div>
+            <div class="modal-actions">
+                <button id="save-edit" class="btn btn-primary">Сохранить</button>
+                <button id="archive-btn" class="btn btn-outline">В архив</button>
+                <button id="cancel-edit" class="btn btn-outline">Отмена</button>
             </div>
         </div>
+    </div>
 
-        <!-- Модальные окна (остаются без изменений) -->
-        <div class="modal" id="subtasks-modal">
-            <!-- ... ваш существующий код модальных окон ... -->
-        </div>
-
-        <div class="modal" id="edit-modal">
-            <!-- ... ваш существующий код модальных окон ... -->
-        </div>
-
-        <div class="modal" id="delete-modal">
-            <!-- ... ваш существующий код модальных окон ... -->
+    <!-- Модальное окно удаления -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <h2>Удалить задачу</h2>
+            <p>Точно хочешь удалить эту задачу?</p>
+            <div class="modal-actions">
+                <button id="confirm-delete" class="btn btn-danger">Удалить</button>
+                <button id="cancel-delete" class="btn btn-outline">Отмена</button>
+            </div>
         </div>
     </div>
 
     <script src="script.js"></script>
-    <script>
-        // Функция инициализации приложения
-        function initApp() {
-            // Ваш основной код инициализации приложения из script.js
-            console.log('Application initialized for user:', localStorage.getItem('tg_user_id'));
-            
-            // Здесь должен быть вызов вашей основной функции init() из script.js
-            if (typeof init === 'function') {
-                init();
-            }
-        }
-    </script>
 </body>
 </html>
