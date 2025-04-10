@@ -57,6 +57,7 @@ const DOM = {
     subtaskInput: document.getElementById('subtask-input'),
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
+    closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form')
 };
 
@@ -549,8 +550,9 @@ function initEventListeners() {
         if (e.key === 'Enter') addSubtask();
     });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+     // Закрытие модалки подзадач
+    DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
     
-    // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
