@@ -352,16 +352,19 @@ function addSubtaskToDOM(subtask, index) {
         <label for="subtask-${index}" class="subtask-text ${subtask.completed ? 'completed' : ''}">
             ${subtask.text}
         </label>
+        <button class="btn-icon delete-subtask-btn" title="Удалить подзадачу">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        </button>
     `;
     
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
     checkbox.addEventListener('change', function() {
         const isChecked = this.checked;
-        
-        // Оптимистичное обновление UI
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
         
-        // Обновление в Firebase
         tasksRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
@@ -374,7 +377,33 @@ function addSubtaskToDOM(subtask, index) {
         });
     });
     
+    // Добавляем обработчик удаления подзадачи
+    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
+    deleteBtn.addEventListener('click', () => {
+        deleteSubtask(index);
+    });
+    
     DOM.subtasksList.appendChild(subtaskEl);
+}
+
+function deleteSubtask(index) {
+    tasksRef.transaction((currentData) => {
+        if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks) {
+            currentData.tasks[state.currentTaskWithSubtasks].subtasks.splice(index, 1);
+        }
+        return currentData;
+    }).then(() => {
+        // После успешного удаления в Firebase, перерисовываем подзадачи
+        const task = state.tasks[state.currentTaskWithSubtasks];
+        DOM.subtasksList.innerHTML = '';
+        if (task.subtasks && task.subtasks.length > 0) {
+            task.subtasks.forEach((subtask, subIndex) => {
+                addSubtaskToDOM(subtask, subIndex);
+            });
+        }
+    }).catch(error => {
+        console.error('Error deleting subtask:', error);
+    });
 }
 
 function addSubtask() {
