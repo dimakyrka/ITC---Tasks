@@ -640,30 +640,67 @@ function showAccessDenied() {
         </div>
     `;
 }
+// Новая функция для загрузки данных
+function loadData() {
+    return new Promise((resolve) => {
+        tasksRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            state.tasks = data.tasks || [];
+            state.events = data.events || [];
+            state.archived = data.archived || [];
+            renderAll();
+            resolve();
+        }, (error) => {
+            console.error('Data load error:', error);
+            resolve(); // Продолжаем работу даже при ошибке
+        });
+    });
+}
+
+// Новая функция инициализации UI
+function initUI() {
+    // Показываем только нужные элементы
+    document.body.classList.add('initialized');
+    
+    // Инициализация событий
+    initEventListeners();
+    
+    // Показываем форму ввода
+    DOM.taskForm.style.display = 'flex';
+    
+    // Обновляем интерфейс
+    updateUI();
+}
 
 // ========== Инициализация приложения ==========
 async function init() {
     try {
-        // 1. Инициализация структуры данных
+        // 1. Проверяем, запущено ли в Telegram WebApp
+        const isTelegram = !!window.Telegram?.WebApp;
+        
+        // 2. Инициализация Firebase
         await initializeDataStructure();
         
-        // 2. Проверка авторизации
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-        const storedUserId = localStorage.getItem('tg_user_id');
-        
-        if (tgUser || storedUserId) {
-            const userId = tgUser?.id || storedUserId;
-            const hasAccess = await checkPermissions(userId);
+        // 3. Проверка авторизации (только для Telegram)
+        if (isTelegram) {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+            if (!tgUser) {
+                showAccessDenied();
+                return;
+            }
             
+            const hasAccess = await checkPermissions(tgUser.id);
             if (!hasAccess) {
                 showAccessDenied();
                 return;
             }
             
-            state.currentUser = userId;
+            state.currentUser = tgUser.id;
+            localStorage.setItem('tg_user_id', tgUser.id);
         } else {
-            console.warn('Running in test mode without Telegram auth');
-            state.currentUser = 'test_user';
+            // Режим разработки (без Telegram)
+            console.log("Running in development mode");
+            state.currentUser = 'dev_user';
             state.userPermissions = {
                 edit: true,
                 delete: true,
@@ -672,27 +709,15 @@ async function init() {
             };
         }
         
-        // 3. Загрузка данных
-        tasksRef.on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            state.tasks = data.tasks || [];
-            state.events = data.events || [];
-            state.archived = data.archived || [];
-            renderAll();
-        });
+        // 4. Загрузка данных
+        await loadData();
         
-        // 4. Инициализация событий
-        initEventListeners();
-        DOM.taskForm.style.display = 'flex';
+        // 5. Инициализация интерфейса
+        initUI();
         
     } catch (error) {
         console.error('Initialization error:', error);
-        document.body.innerHTML = `
-            <div class="error-message">
-                <h2>Ошибка загрузки</h2>
-                <p>Попробуйте обновить страницу</p>
-            </div>
-        `;
+        showError();
     }
 }
 
