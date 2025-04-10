@@ -482,3 +482,30 @@ h1 {
         padding: 1rem;
     }
 }
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.delete-subtask-btn {
+    margin-left: auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--text-light);
+    transition: all 0.2s;
+}
+
+.delete-subtask-btn:hover {
+    color: var(--red);
+}
+
+.subtask-text {
+    flex: 1;
+    margin: 0 0.5rem;
+    word-break: break-word;
+    padding: 0.5rem 0;
+}
