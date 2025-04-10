@@ -25,9 +25,7 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null,
-    currentUser: null,
-    userPermissions: null
+    currentEditType: null
 };
 
 // ========== DOM элементы ==========
@@ -65,24 +63,14 @@ const DOM = {
 
 // ========== Инициализация Firebase ==========
 function initializeDataStructure() {
-    return new Promise((resolve) => {
-        tasksRef.once('value').then((snapshot) => {
-            if (!snapshot.exists()) {
-                tasksRef.set({
-                    tasks: [],
-                    events: [],
-                    archived: [],
-                    users: {}
-                }).then(resolve);
-            } else if (!snapshot.val().users) {
-                tasksRef.child('users').set({}).then(resolve);
-            } else {
-                resolve();
-            }
-        }).catch((error) => {
-            console.error('Init error:', error);
-            resolve(); // Продолжаем работу даже при ошибке
-        });
+    tasksRef.once('value').then((snapshot) => {
+        if (!snapshot.exists()) {
+            tasksRef.set({
+                tasks: [],
+                events: [],
+                archived: []
+            });
+        }
     });
 }
 
@@ -143,14 +131,6 @@ function createTaskElement(item, index, type) {
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
-
-    // Прячем кнопки если нет прав
-    if (!state.userPermissions?.edit) {
-        taskEl.querySelector('.edit-btn').style.display = 'none';
-    }
-    if (!state.userPermissions?.delete) {
-        taskEl.querySelector('.delete-btn').style.display = 'none';
-    }
     
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
@@ -338,22 +318,6 @@ function deleteItem() {
     }).catch(console.error);
 }
 
-// Функция проверки прав
-async function checkPermissions(userId) {
-    return new Promise((resolve) => {
-        database.ref('users/' + userId).once('value', (snapshot) => {
-            const userData = snapshot.val();
-            if (userData) {
-                state.currentUser = userId;
-                state.userPermissions = userData.permissions || {};
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-        });
-    });
-}
-
 // ========== Функции подзадач ==========
 function openSubtasksModal(index) {
     if (index === null || index === undefined || !state.tasks[index]) {
@@ -396,12 +360,6 @@ function addSubtaskToDOM(subtask, index) {
         </button>
     `;
     
-    // Проверка прав для удаления подзадачи
-    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
-    if (!state.userPermissions?.manageSubtasks) {
-        deleteBtn.style.display = 'none';
-    }
-    
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
     checkbox.addEventListener('change', function() {
         const isChecked = this.checked;
@@ -419,6 +377,8 @@ function addSubtaskToDOM(subtask, index) {
         });
     });
     
+    // Добавляем обработчик удаления подзадачи
+    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
     deleteBtn.addEventListener('click', () => {
         deleteSubtask(index);
     });
@@ -532,9 +492,6 @@ function updateEmptyStates() {
 }
 
 function openEditModal(index, type) {
-    if (!state.userPermissions?.archive) {
-    DOM.archiveBtn.style.display = 'none';
-    }
     state.currentEditIndex = index;
     state.currentEditType = type;
     const item = type === 'tasks' ? state.tasks[index] : 
@@ -622,9 +579,11 @@ function initEventListeners() {
         if (e.key === 'Enter') addSubtask();
     });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
-     // Закрытие модалки подзадач
+
+    // Закрытие модалки подзадач
     DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
     
+    // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
@@ -632,93 +591,21 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
-function showAccessDenied() {
-    document.body.innerHTML = `
-        <div class="access-denied">
-            <h2>Доступ ограничен</h2>
-            <p>У вас нет прав для использования этого приложения</p>
-        </div>
-    `;
-}
-// Новая функция для загрузки данных
-function loadData() {
-    return new Promise((resolve) => {
-        tasksRef.on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            state.tasks = data.tasks || [];
-            state.events = data.events || [];
-            state.archived = data.archived || [];
-            renderAll();
-            resolve();
-        }, (error) => {
-            console.error('Data load error:', error);
-            resolve(); // Продолжаем работу даже при ошибке
-        });
-    });
-}
-
-// Новая функция инициализации UI
-function initUI() {
-    // Показываем только нужные элементы
-    document.body.classList.add('initialized');
-    
-    // Инициализация событий
-    initEventListeners();
-    
-    // Показываем форму ввода
-    DOM.taskForm.style.display = 'flex';
-    
-    // Обновляем интерфейс
-    updateUI();
-}
-
 // ========== Инициализация приложения ==========
-async function init() {
-    try {
-        // 1. Проверяем, запущено ли в Telegram WebApp
-        const isTelegram = !!window.Telegram?.WebApp;
-        
-        // 2. Инициализация Firebase
-        await initializeDataStructure();
-        
-        // 3. Проверка авторизации (только для Telegram)
-        if (isTelegram) {
-            const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-            if (!tgUser) {
-                showAccessDenied();
-                return;
-            }
-            
-            const hasAccess = await checkPermissions(tgUser.id);
-            if (!hasAccess) {
-                showAccessDenied();
-                return;
-            }
-            
-            state.currentUser = tgUser.id;
-            localStorage.setItem('tg_user_id', tgUser.id);
-        } else {
-            // Режим разработки (без Telegram)
-            console.log("Running in development mode");
-            state.currentUser = 'dev_user';
-            state.userPermissions = {
-                edit: true,
-                delete: true,
-                archive: true,
-                manageSubtasks: true
-            };
-        }
-        
-        // 4. Загрузка данных
-        await loadData();
-        
-        // 5. Инициализация интерфейса
-        initUI();
-        
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showError();
-    }
+function init() {
+    initializeDataStructure();
+    
+    // Загрузка данных из Firebase
+    tasksRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        state.tasks = data.tasks || [];
+        state.events = data.events || [];
+        state.archived = data.archived || [];
+        renderAll();
+    });
+    
+    initEventListeners();
+    DOM.taskForm.style.display = 'flex';
 }
 
 // Запуск приложения
