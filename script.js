@@ -636,7 +636,7 @@ function showAccessDenied() {
 }
 
 // ========== Инициализация приложения ==========
-function init() {
+async function init() {
     // Запрашиваем ID пользователя (в мини-приложении Telegram он доступен)
     const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
     if (tgUser) {
