@@ -65,18 +65,24 @@ const DOM = {
 
 // ========== Инициализация Firebase ==========
 function initializeDataStructure() {
-    tasksRef.once('value').then((snapshot) => {
-        if (!snapshot.exists()) {
-            tasksRef.set({
-                tasks: [],
-                events: [],
-                archived: [],
-                users: {}  // Добавляем пустой объект пользователей
-            });
-        } else if (!snapshot.val().users) {
-            // Если база есть, но нет раздела users
-            tasksRef.child('users').set({});
-        }
+    return new Promise((resolve) => {
+        tasksRef.once('value').then((snapshot) => {
+            if (!snapshot.exists()) {
+                tasksRef.set({
+                    tasks: [],
+                    events: [],
+                    archived: [],
+                    users: {}
+                }).then(resolve);
+            } else if (!snapshot.val().users) {
+                tasksRef.child('users').set({}).then(resolve);
+            } else {
+                resolve();
+            }
+        }).catch((error) => {
+            console.error('Init error:', error);
+            resolve(); // Продолжаем работу даже при ошибке
+        });
     });
 }
 
@@ -637,28 +643,57 @@ function showAccessDenied() {
 
 // ========== Инициализация приложения ==========
 async function init() {
-    // Запрашиваем ID пользователя (в мини-приложении Telegram он доступен)
-    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-    if (tgUser) {
-        const hasAccess = await checkPermissions(tgUser.id);
-        if (!hasAccess) {
-            showAccessDenied();
-            return;
+    try {
+        // 1. Инициализация структуры данных
+        await initializeDataStructure();
+        
+        // 2. Проверка авторизации
+        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const storedUserId = localStorage.getItem('tg_user_id');
+        
+        if (tgUser || storedUserId) {
+            const userId = tgUser?.id || storedUserId;
+            const hasAccess = await checkPermissions(userId);
+            
+            if (!hasAccess) {
+                showAccessDenied();
+                return;
+            }
+            
+            state.currentUser = userId;
+        } else {
+            console.warn('Running in test mode without Telegram auth');
+            state.currentUser = 'test_user';
+            state.userPermissions = {
+                edit: true,
+                delete: true,
+                archive: true,
+                manageSubtasks: true
+            };
         }
+        
+        // 3. Загрузка данных
+        tasksRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            state.tasks = data.tasks || [];
+            state.events = data.events || [];
+            state.archived = data.archived || [];
+            renderAll();
+        });
+        
+        // 4. Инициализация событий
+        initEventListeners();
+        DOM.taskForm.style.display = 'flex';
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+        document.body.innerHTML = `
+            <div class="error-message">
+                <h2>Ошибка загрузки</h2>
+                <p>Попробуйте обновить страницу</p>
+            </div>
+        `;
     }
-    initializeDataStructure();
-    
-    // Загрузка данных из Firebase
-    tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
-        renderAll();
-    });
-    
-    initEventListeners();
-    DOM.taskForm.style.display = 'flex';
 }
 
 // Запуск приложения
