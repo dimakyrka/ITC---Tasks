@@ -70,8 +70,12 @@ function initializeDataStructure() {
             tasksRef.set({
                 tasks: [],
                 events: [],
-                archived: []
+                archived: [],
+                users: {}  // Добавляем пустой объект пользователей
             });
+        } else if (!snapshot.val().users) {
+            // Если база есть, но нет раздела users
+            tasksRef.child('users').set({});
         }
     });
 }
