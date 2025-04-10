@@ -25,7 +25,9 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null
+    currentEditType: null,
+    currentUser: null,
+    userPermissions: null
 };
 
 // ========== DOM элементы ==========
@@ -131,6 +133,14 @@ function createTaskElement(item, index, type) {
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
+
+    // Прячем кнопки если нет прав
+    if (!state.userPermissions?.edit) {
+        taskEl.querySelector('.edit-btn').style.display = 'none';
+    }
+    if (!state.userPermissions?.delete) {
+        taskEl.querySelector('.delete-btn').style.display = 'none';
+    }
     
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
@@ -318,6 +328,22 @@ function deleteItem() {
     }).catch(console.error);
 }
 
+// Функция проверки прав
+async function checkPermissions(userId) {
+    return new Promise((resolve) => {
+        database.ref('users/' + userId).once('value', (snapshot) => {
+            const userData = snapshot.val();
+            if (userData) {
+                state.currentUser = userId;
+                state.userPermissions = userData.permissions || {};
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        });
+    });
+}
+
 // ========== Функции подзадач ==========
 function openSubtasksModal(index) {
     if (index === null || index === undefined || !state.tasks[index]) {
@@ -344,6 +370,11 @@ function openSubtasksModal(index) {
 
 function addSubtaskToDOM(subtask, index) {
     const subtaskEl = document.createElement('li');
+
+    if (!state.userPermissions?.manageSubtasks) {
+        deleteBtn.style.display = 'none';
+    }
+    
     subtaskEl.className = 'subtask-item';
     subtaskEl.innerHTML = `
         <input type="checkbox" class="subtask-checkbox" 
@@ -492,6 +523,9 @@ function updateEmptyStates() {
 }
 
 function openEditModal(index, type) {
+    if (!state.userPermissions?.archive) {
+    DOM.archiveBtn.style.display = 'none';
+    }
     state.currentEditIndex = index;
     state.currentEditType = type;
     const item = type === 'tasks' ? state.tasks[index] : 
@@ -589,8 +623,26 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
+function showAccessDenied() {
+    document.body.innerHTML = `
+        <div class="access-denied">
+            <h2>Доступ ограничен</h2>
+            <p>У вас нет прав для использования этого приложения</p>
+        </div>
+    `;
+}
+
 // ========== Инициализация приложения ==========
 function init() {
+    // Запрашиваем ID пользователя (в мини-приложении Telegram он доступен)
+    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    if (tgUser) {
+        const hasAccess = await checkPermissions(tgUser.id);
+        if (!hasAccess) {
+            showAccessDenied();
+            return;
+        }
+    }
     initializeDataStructure();
     
     // Загрузка данных из Firebase
