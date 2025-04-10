@@ -374,11 +374,6 @@ function openSubtasksModal(index) {
 
 function addSubtaskToDOM(subtask, index) {
     const subtaskEl = document.createElement('li');
-
-    if (!state.userPermissions?.manageSubtasks) {
-        deleteBtn.style.display = 'none';
-    }
-    
     subtaskEl.className = 'subtask-item';
     subtaskEl.innerHTML = `
         <input type="checkbox" class="subtask-checkbox" 
@@ -394,6 +389,12 @@ function addSubtaskToDOM(subtask, index) {
             </svg>
         </button>
     `;
+    
+    // Проверка прав для удаления подзадачи
+    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
+    if (!state.userPermissions?.manageSubtasks) {
+        deleteBtn.style.display = 'none';
+    }
     
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
     checkbox.addEventListener('change', function() {
@@ -412,8 +413,6 @@ function addSubtaskToDOM(subtask, index) {
         });
     });
     
-    // Добавляем обработчик удаления подзадачи
-    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
     deleteBtn.addEventListener('click', () => {
         deleteSubtask(index);
     });
