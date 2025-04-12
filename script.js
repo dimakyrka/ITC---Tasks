@@ -25,7 +25,15 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null
+    currentEditType: null,
+    currentUser: null,
+    userPermissions: {
+        canAdd: false,
+        canEdit: false,
+        canDelete: false,
+        canArchive: false,
+        canManageSubtasks: false
+    }
 };
 
 // ========== DOM элементы ==========
@@ -73,6 +81,84 @@ function initializeDataStructure() {
         }
     });
 }
+
+function setupApplication() {
+    // Загрузка данных из Firebase
+    tasksRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        state.tasks = data.tasks || [];
+        state.events = data.events || [];
+        state.archived = data.archived || [];
+        renderAll();
+    });
+    
+    initEventListeners();
+    DOM.taskForm.style.display = state.currentTab === 'archive' ? 'none' : 'flex';
+    
+    // Скрываем/показываем элементы в зависимости от прав
+    updateUIForPermissions();
+}
+
+// Новая функция для проверки прав
+async function checkUserPermissions(userId) {
+    try {
+        const snapshot = await database.ref('users/' + userId).once('value');
+        const userData = snapshot.val();
+        
+        if (userData) {
+            return {
+                hasAccess: true,
+                permissions: userData.permissions || {
+                    canAdd: false,
+                    canEdit: false,
+                    canDelete: false,
+                    canArchive: false,
+                    canManageSubtasks: false
+                }
+            };
+        }
+        return { hasAccess: false, permissions: null };
+    } catch (error) {
+        console.error("Error checking permissions:", error);
+        return { hasAccess: false, permissions: null };
+    }
+}
+
+function updateUIForPermissions() {
+    // Форма добавления
+    DOM.taskForm.style.display = state.userPermissions.canAdd ? 'flex' : 'none';
+    
+    // Кнопки действий
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.style.display = state.userPermissions.canEdit ? 'flex' : 'none';
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.style.display = state.userPermissions.canDelete ? 'flex' : 'none';
+    });
+    
+    // Кнопка архива в модалке редактирования
+    DOM.archiveBtn.style.display = state.userPermissions.canArchive ? 'block' : 'none';
+    
+    // Кликабельность задач для подзадач
+    if (!state.userPermissions.canManageSubtasks) {
+        document.querySelectorAll('#tasks .task-content').forEach(el => {
+            el.style.pointerEvents = 'none';
+            el.style.cursor = 'default';
+        });
+    }
+}
+
+function showAccessDenied() {
+    document.body.innerHTML = `
+        <div class="access-denied">
+            <h2>Доступ запрещен</h2>
+            <p>У вас нет прав для использования этого приложения.</p>
+            <p>Обратитесь к администратору.</p>
+        </div>
+    `;
+}
+
 
 // ========== Основные функции рендеринга ==========
 function renderAll() {
@@ -592,20 +678,26 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-function init() {
+// Обновляем init()
+async function init() {
     initializeDataStructure();
     
-    // Загрузка данных из Firebase
-    tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
-        renderAll();
-    });
+    // Получаем ID пользователя Telegram
+    const tgUserId = window.Telegram.WebApp.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
     
-    initEventListeners();
-    DOM.taskForm.style.display = 'flex';
+    if (tgUserId) {
+        const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
+        
+        if (hasAccess) {
+            state.currentUser = tgUserId;
+            state.userPermissions = permissions;
+            setupApplication();
+        } else {
+            showAccessDenied();
+        }
+    } else {
+        showAccessDenied();
+    }
 }
 
 // Запуск приложения
