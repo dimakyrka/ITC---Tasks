@@ -429,6 +429,32 @@ h1 {
     margin-left: auto;
 }
 
+/* Стили для кнопки закрытия в подзадачах */
+#close-subtasks-btn {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#close-subtasks-btn:hover {
+    color: #333;
+}
+
+#close-subtasks-btn::before {
+    content: "×";
+    font-size: 1.2rem;
+}
+
 .close-modal-btn:hover {
     background: rgba(0,0,0,0.05);
     color: var(--text);
