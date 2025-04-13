@@ -341,7 +341,7 @@ function addItem() {
         return;
     }
     
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         currentData = currentData || {};
         if (state.currentTab === 'tasks') {
             currentData.tasks = currentData.tasks || [];
@@ -368,7 +368,7 @@ function saveEdit() {
       return;
     }
     
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         const item = currentData[state.currentEditType][state.currentEditIndex];
         item.text = newText;
         item.color = state.selectedColor;
@@ -382,7 +382,7 @@ function saveEdit() {
 function moveToArchive() {
     if (state.currentEditIndex === null || !state.currentEditType) return;
 
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
 
         const itemToArchive = { 
@@ -404,7 +404,7 @@ function moveToArchive() {
 }
 
 function restoreFromArchive(index) {
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         if (!currentData?.archived || index >= currentData.archived.length) {
             return currentData;
         }
@@ -429,7 +429,7 @@ function deleteItem() {
       return;
     }    
     
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         if (state.currentEditType === 'tasks') {
             currentData.tasks.splice(state.currentDeleteIndex, 1);
         } else if (state.currentEditType === 'events') {
@@ -491,7 +491,7 @@ function addSubtaskToDOM(subtask, index) {
         const isChecked = this.checked;
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
         
-        tasksRef.transaction((currentData) => {
+        dbRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
             }
@@ -513,7 +513,7 @@ function addSubtaskToDOM(subtask, index) {
 }
 
 function deleteSubtask(index) {
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks) {
             currentData.tasks[state.currentTaskWithSubtasks].subtasks.splice(index, 1);
         }
@@ -549,7 +549,7 @@ function addSubtask() {
     DOM.subtaskInput.focus();
 
     // Обновление в Firebase
-    tasksRef.transaction((currentData) => {
+    dbRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
         
         if (!currentData.tasks[state.currentTaskWithSubtasks].subtasks) {
