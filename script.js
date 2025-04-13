@@ -489,9 +489,21 @@ function swapItems(fromIndex, toIndex) {
 
 // ========== Вспомогательные функции ==========
 function updateEmptyStates() {
-    DOM.emptyStates.tasks.classList.toggle('active', state.tasks.length === 0);
-    DOM.emptyStates.events.classList.toggle('active', state.events.length === 0);
-    DOM.emptyStates.archive.classList.toggle('active', state.archived.length === 0);
+    const tasksEmpty = state.tasks.length === 0;
+    const eventsEmpty = state.events.length === 0;
+    const archiveEmpty = state.archived.length === 0;
+
+    DOM.emptyStates.tasks.classList.toggle('active', tasksEmpty);
+    DOM.emptyStates.events.classList.toggle('active', eventsEmpty);
+    DOM.emptyStates.archive.classList.toggle('active', archiveEmpty);
+    
+    // Добавьте эту проверку
+    if (!tasksEmpty) {
+        DOM.emptyStates.tasks.style.display = 'none';
+    }
+    if (!eventsEmpty) {
+        DOM.emptyStates.events.style.display = 'none';
+    }
 }
 
 function openEditModal(index, type) {
