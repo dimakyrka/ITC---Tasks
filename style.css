@@ -164,7 +164,7 @@ h1 {
 }
 
 .task-assigned-to::before {
-    content: "→";
+    content: "";
     font-size: 0.7rem;
     opacity: 0.6;
 }
