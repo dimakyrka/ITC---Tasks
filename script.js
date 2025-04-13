@@ -25,7 +25,15 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null
+    currentEditType: null,
+    currentUser: null,
+    userPermissions: {
+        view: false,
+        edit: false,
+        delete: false,
+        archive: false,
+        manageSubtasks: false
+    }
 };
 
 // ========== DOM элементы ==========
@@ -75,7 +83,78 @@ function initializeDataStructure() {
     });
 }
 
+// Функция проверки прав (полная версия)
+async function checkPermissions(userId) {
+    try {
+        const userRef = database.ref('users/' + userId);
+        const snapshot = await userRef.once('value');
+        const userData = snapshot.val();
+        
+        if (userData && userData.permissions) {
+            state.currentUser = userId;
+            state.userPermissions = {
+                view: !!userData.permissions.view,
+                edit: !!userData.permissions.edit,
+                delete: !!userData.permissions.delete,
+                archive: !!userData.permissions.archive,
+                manageSubtasks: !!userData.permissions.manageSubtasks
+            };
+        } else {
+            // Пользователь без прав (только просмотр)
+            state.userPermissions = {
+                view: true,
+                edit: false,
+                delete: false,
+                archive: false,
+                manageSubtasks: false
+            };
+        }
+        updateUI();
+    } catch (error) {
+        console.error("Ошибка проверки прав:", error);
+        // В случае ошибки - доступ только для чтения
+        state.userPermissions = {
+            view: true,
+            edit: false,
+            delete: false,
+            archive: false,
+            manageSubtasks: false
+        };
+        updateUI();
+    }
+}
+
 // ========== Основные функции рендеринга ==========
+
+function updateUI() {
+  // Основные элементы управления
+  document.querySelectorAll('.edit-btn').forEach(el => {
+    el.style.display = state.userPermissions.edit ? 'flex' : 'none';
+  });
+  
+  document.querySelectorAll('.delete-btn').forEach(el => {
+    el.style.display = state.userPermissions.delete ? 'flex' : 'none';
+  });
+
+  // Форма добавления
+  DOM.taskForm.style.display = state.userPermissions.edit ? 'flex' : 'none';
+
+  // Кнопка архива в модалке
+  DOM.archiveBtn.style.display = state.userPermissions.archive ? 'block' : 'none';
+
+  // Подзадачи
+  const subtaskActions = document.querySelectorAll('.subtask-actions');
+  subtaskActions.forEach(el => {
+    el.style.display = state.userPermissions.manageSubtasks ? 'flex' : 'none';
+  });
+
+  // Drag-and-drop
+  document.querySelectorAll('.task[draggable]').forEach(el => {
+    el.draggable = state.userPermissions.edit;
+  });
+}
+
+
 function renderAll() {
     renderTasks();
     renderEvents();
@@ -132,6 +211,13 @@ function createTaskElement(item, index, type) {
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
+
+
+    // Добавляем проверку прав для кнопок
+    taskEl.querySelector('.edit-btn').style.display = 
+        state.userPermissions.edit ? 'flex' : 'none';
+    taskEl.querySelector('.delete-btn').style.display = 
+        state.userPermissions.delete ? 'flex' : 'none';
     
     // Добавляем иконку и имя ответственного (если есть)
     const assignedHtml = item.assignedTo 
@@ -229,6 +315,11 @@ function addItem() {
         createdAt: Date.now(),
         subtasks: []
     };
+
+    if (!state.userPermissions.edit) {
+        alert("У вас нет прав на добавление задач");
+        return;
+    }
     
     tasksRef.transaction((currentData) => {
         currentData = currentData || {};
@@ -251,6 +342,12 @@ function saveEdit() {
     
     if (!newText || state.currentEditIndex === null) return;
 
+    // В функции saveEdit()
+    if (!state.userPermissions.edit) {
+      alert("У вас нет прав на редактирование");
+      return;
+    }
+    
     tasksRef.transaction((currentData) => {
         const item = currentData[state.currentEditType][state.currentEditIndex];
         item.text = newText;
@@ -306,6 +403,12 @@ function restoreFromArchive(index) {
 function deleteItem() {
     if (state.currentDeleteIndex === null) return;
 
+    // В функции deleteItem()
+    if (!state.userPermissions.delete) {
+      alert("У вас нет прав на удаление");
+      return;
+    }    
+    
     tasksRef.transaction((currentData) => {
         if (state.currentEditType === 'tasks') {
             currentData.tasks.splice(state.currentDeleteIndex, 1);
@@ -610,21 +713,49 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
+// Вспомогательная функция для получения TG ID из initData
+function getTgIdFromInitData() {
+    if (window.Telegram && Telegram.WebApp) {
+        return Telegram.WebApp.initDataUnsafe.user?.id.toString();
+    }
+    return null;
+}
+
 // ========== Инициализация приложения ==========
 function init() {
     initializeDataStructure();
     
-    // Загрузка данных из Firebase
+    // Получаем TG ID из URL (WebApp) или параметров
+    const urlParams = new URLSearchParams(window.location.search);
+    const tgId = urlParams.get('tgid') || getTgIdFromInitData() || null;
+    
+    // Загружаем данные и проверяем права
     tasksRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
         state.tasks = data.tasks || [];
         state.events = data.events || [];
         state.archived = data.archived || [];
+        
+        // Проверяем права пользователя
+        if (tgId) {
+            checkPermissions(tgId);
+        } else {
+            // Гостевой доступ (только просмотр)
+            state.userPermissions = {
+                view: true,
+                edit: false,
+                delete: false,
+                archive: false,
+                manageSubtasks: false
+            };
+            updateUI();
+        }
+        
         renderAll();
     });
     
     initEventListeners();
-    DOM.taskForm.style.display = 'flex';
+    DOM.taskForm.style.display = 'none'; // Скрываем до проверки прав
 }
 
 // Запуск приложения
