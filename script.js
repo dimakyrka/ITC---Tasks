@@ -13,6 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const tasksRef = database.ref('tasks');
+const usersRef = database.ref('users');
 
 // ========== Состояние приложения ==========
 const state = {
@@ -65,7 +66,6 @@ const DOM = {
     subtaskInput: document.getElementById('subtask-input'),
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
-    closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form')
 };
 
@@ -83,38 +83,29 @@ function initializeDataStructure() {
 }
 
 function setupApplication() {
-    // Загрузка данных из Firebase
+    // Загрузка задач
     tasksRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
         state.tasks = data.tasks || [];
         state.events = data.events || [];
         state.archived = data.archived || [];
         renderAll();
+        updateUIForPermissions();
     });
-    
+
     initEventListeners();
-    DOM.taskForm.style.display = state.currentTab === 'archive' ? 'none' : 'flex';
-    
-    // Скрываем/показываем элементы в зависимости от прав
-    updateUIForPermissions();
 }
 
-// Новая функция для проверки прав
+// Функция проверки прав
 async function checkUserPermissions(userId) {
     try {
-        const snapshot = await database.ref('users/' + userId).once('value');
+        const snapshot = await usersRef.child(userId).once('value');
         const userData = snapshot.val();
         
         if (userData) {
             return {
                 hasAccess: true,
-                permissions: userData.permissions || {
-                    canAdd: false,
-                    canEdit: false,
-                    canDelete: false,
-                    canArchive: false,
-                    canManageSubtasks: false
-                }
+                permissions: userData.permissions || state.userPermissions
             };
         }
         return { hasAccess: false, permissions: null };
@@ -616,9 +607,11 @@ function handleEscKey(e) {
 
 // ========== Инициализация событий ==========
 function initEventListeners() {
-    // Вкладки
+    // 1. Обработчики вкладок
     DOM.tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            if (!state.userPermissions.canAdd && !state.userPermissions.canEdit) return;
+            
             DOM.tabBtns.forEach(b => b.classList.remove('active'));
             DOM.tabContents.forEach(c => c.classList.remove('active'));
             
@@ -629,13 +622,19 @@ function initEventListeners() {
         });
     });
     
-    // Добавление задач
-    DOM.addBtn.addEventListener('click', addItem);
-    DOM.taskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addItem();
-    });
+    // 2. Добавление задач/мероприятий (только для пользователей с правами)
+    if (state.userPermissions.canAdd) {
+        DOM.addBtn.addEventListener('click', addItem);
+        DOM.taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addItem();
+        });
+    } else {
+        DOM.taskInput.disabled = true;
+        DOM.addBtn.style.opacity = '0.5';
+        DOM.addBtn.style.cursor = 'not-allowed';
+    }
     
-    // Редактирование
+    // 3. Редактирование (проверка прав в самой функции openEditModal)
     DOM.saveEditBtn.addEventListener('click', saveEdit);
     DOM.editInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') saveEdit();
@@ -643,33 +642,44 @@ function initEventListeners() {
     DOM.cancelEditBtn.addEventListener('click', () => {
         DOM.editModal.classList.remove('active');
     });
-    DOM.archiveBtn.addEventListener('click', moveToArchive);
     
-    // Цвета
+    // 4. Архивация (показываем кнопку только если есть права)
+    if (state.userPermissions.canArchive) {
+        DOM.archiveBtn.addEventListener('click', moveToArchive);
+    } else {
+        DOM.archiveBtn.style.display = 'none';
+    }
+    
+    // 5. Цвета (доступны только для редактирования)
     DOM.colorOptions.forEach(option => {
         option.addEventListener('click', () => {
+            if (!state.userPermissions.canEdit) return;
             state.selectedColor = option.dataset.color;
             updateColorSelection();
         });
     });
     
-    // Удаление
+    // 6. Удаление (проверка прав в openDeleteModal)
     DOM.confirmDeleteBtn.addEventListener('click', deleteItem);
     DOM.cancelDeleteBtn.addEventListener('click', () => {
         DOM.deleteModal.classList.remove('active');
     });
     
-    // Подзадачи
-    DOM.addSubtaskBtn.addEventListener('click', addSubtask);
-    DOM.subtaskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addSubtask();
-    });
-    DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
-
-    // Закрытие модалки подзадач
-    DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+    // 7. Подзадачи (проверка прав)
+    if (state.userPermissions.canManageSubtasks) {
+        DOM.addSubtaskBtn.addEventListener('click', addSubtask);
+        DOM.subtaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubtask();
+        });
+    } else {
+        DOM.subtaskInput.disabled = true;
+        DOM.addSubtaskBtn.style.opacity = '0.5';
+        DOM.addSubtaskBtn.style.cursor = 'not-allowed';
+    }
     
-    // Закрытие модалок
+    DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+    
+    // 8. Глобальные обработчики
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
@@ -678,12 +688,16 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-// Обновляем init()
+// Инициализация приложения
 async function init() {
-    initializeDataStructure();
-    
-    // Получаем ID пользователя Telegram
-    const tgUserId = window.Telegram.WebApp.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
+    // Проверка DOM элементов
+    if (!validateDOMElements()) {
+        showAccessDenied("Ошибка инициализации приложения");
+        return;
+    }
+
+    // Получаем ID пользователя
+    const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
     
     if (tgUserId) {
         const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
@@ -693,12 +707,14 @@ async function init() {
             state.userPermissions = permissions;
             setupApplication();
         } else {
-            showAccessDenied();
+            showAccessDenied("У вас нет доступа к приложению");
         }
     } else {
-        showAccessDenied();
+        showAccessDenied("Не удалось идентифицировать пользователя");
     }
 }
+
+
 
 // Запуск приложения
 init();
