@@ -721,7 +721,12 @@ function initEventListeners() {
 // ========== Инициализация приложения ==========
 // Инициализация приложения
 async function init() {
-    // Проверка DOM элементов
+  const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
+  console.log("Detected Telegram User ID:", tgUserId); // Добавьте эту строку
+  
+  if (tgUserId) {
+    const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
+    console.log("Access check result:", { hasAccess, permissions }); // И эту
     if (!validateDOMElements()) {
         return; // Прекращаем инициализацию
     }
