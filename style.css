@@ -1,3 +1,4 @@
+style.css
 :root {
     --bg: #f9fafb;
     --card: #ffffff;
@@ -523,11 +524,9 @@ h1 {
 .access-denied h2 {
     color: var(--red);
     margin-bottom: 1rem;
-    font-size: 1.5rem;
 }
 
 .access-denied p {
     color: var(--text-light);
     font-size: 1.1rem;
-    margin-bottom: 0.5rem;
 }
