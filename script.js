@@ -75,11 +75,11 @@ function initializeDataStructure() {
     dbRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
             const initialData = {
-                tasks: [],
-                events: [],
-                archived: [],
+                tasks: {},
+                events: {},
+                archived: {},
                 users: {
-                    "647523973": { // Ваш ID по умолчанию
+                    "647523973": {
                         name: "Димка",
                         permissions: {
                             view: true,
@@ -91,9 +91,9 @@ function initializeDataStructure() {
                     }
                 }
             };
-            dbRef.set(initialData).catch(console.error);
+            dbRef.set(initialData);
         }
-    }).catch(console.error);
+    });
 }
 
 // Функция проверки прав (полная версия)
@@ -177,8 +177,14 @@ function renderAll() {
 
 function renderTasks() {
     DOM.tasksList.innerHTML = '';
-    state.tasks.forEach((task, index) => {
-        DOM.tasksList.appendChild(createTaskElement(task, index, 'tasks'));
+    
+    if (!state.tasks) return;
+    
+    // Для структуры {id: taskData}
+    Object.entries(state.tasks).forEach(([id, task]) => {
+        if (task) {
+            DOM.tasksList.appendChild(createTaskElement(task, id, 'tasks'));
+        }
     });
 }
 
@@ -326,34 +332,18 @@ function createArchiveItem(item, index) {
 
 // ========== Функции работы с данными ==========
 function addItem() {
-    const text = DOM.taskInput.value.trim();
-    if (!text) return;
-
     const newItem = {
-        text: text,
+        text: DOM.taskInput.value.trim(),
         color: "#e5e7eb",
         createdAt: Date.now(),
-        subtasks: []
+        subtasks: [],
+        assignedTo: ""
     };
-
-    if (!state.userPermissions.edit) {
-        alert("У вас нет прав на добавление задач");
-        return;
-    }
     
-    dbRef.transaction((currentData) => {
-        currentData = currentData || {};
-        if (state.currentTab === 'tasks') {
-            currentData.tasks = currentData.tasks || [];
-            currentData.tasks.unshift(newItem);
-        } else {
-            currentData.events = currentData.events || [];
-            currentData.events.unshift(newItem);
-        }
-        return currentData;
-    }).then(() => {
-        DOM.taskInput.value = '';
-    }).catch(console.error);
+    const newTaskRef = dbRef.child('tasks').push();
+    newTaskRef.set(newItem)
+        .then(() => DOM.taskInput.value = '')
+        .catch(console.error);
 }
 
 function saveEdit() {
