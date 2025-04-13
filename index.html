@@ -13,14 +13,9 @@
     <!-- Добавляем этот код перед закрывающим </head> -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-            if (tgUser) {
-                localStorage.setItem('tg_user_id', tgUser.id);
-                // Можно сразу передать в состояние приложения
-                window.tgUserId = tgUser.id;
-            }
-        });
+         document.addEventListener('DOMContentLoaded', () => {
+            window.Telegram.WebApp.expand();
+    });
     </script>
 </head>
 <body>
