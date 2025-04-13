@@ -62,7 +62,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно подзадач (исправленная версия) -->
+    <!-- Модальное окно подзадач -->
     <div class="modal" id="subtasks-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -85,18 +85,29 @@
                     </svg>
                 </button>
             </div>
-            <!-- Добавлена кнопка закрытия (которая была пропущена) -->
             <div class="modal-footer">
                 <button id="close-subtasks-btn" class="btn btn-outline">Закрыть</button>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно редактирования -->
+    <!-- Модальное окно редактирования (с выпадающим списком) -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
             <h2>Редактировать</h2>
             <input type="text" id="edit-input" class="task-input">
+            
+            <!-- Заменяем текстовое поле на выпадающий список -->
+            <select id="edit-assigned-to" class="task-input" style="margin-top: 10px;">
+                <option value="">Не назначено</option>
+                <option value="Алексей">Алексей</option>
+                <option value="Мария">Мария</option>
+                <option value="Иван">Иван</option>
+                <option value="Ольга">Ольга</option>
+                <option value="Дмитрий">Дмитрий</option>
+                <option value="Другое">Другое</option>
+            </select>
+            
             <div class="color-picker">
                 <div class="color-option selected" data-color="#e5e7eb" style="background: #e5e7eb;"></div>
                 <div class="color-option" data-color="#ef4444" style="background: #ef4444;"></div>
@@ -124,7 +135,6 @@
         </div>
     </div>
 
-    <!-- Скрипт должен быть в конце body -->
     <script src="script.js"></script>
 </body>
 </html>
