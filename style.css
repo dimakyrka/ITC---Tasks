@@ -484,3 +484,23 @@ h1 {
         padding: 1rem;
     }
 }
+
+/* Добавляем в конец файла или в раздел для подзадач */
+#subtasks-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap; /* Запрещаем перенос строк */
+    overflow: hidden; /* Скрываем выходящий за границы текст */
+    text-overflow: ellipsis; /* Добавляем многоточие */
+    max-width: 80%; /* Ограничиваем ширину */
+    margin: 0 auto; /* Центрируем */
+    padding: 0 1rem; /* Отступы справа/слева */
+}
+
+/* Для мобильных устройств делаем шрифт меньше */
+@media (max-width: 480px) {
+    #subtasks-title {
+        font-size: 1rem;
+        max-width: 70%;
+    }
+}
