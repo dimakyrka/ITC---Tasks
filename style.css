@@ -535,6 +535,33 @@ h1 {
 
 /* Иконка перед именем */
 .task-assigned-to::before {
-    content: "👤";
+    content: "→"; /* Вариант 1: стрелка */
+    /* content: "";  Вариант 2: полностью убираем */
     font-size: 0.7rem;
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
+/* Стили для select в модалке редактирования */
+#edit-assigned-to {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin: 10px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: border 0.2s;
+}
+
+#edit-assigned-to:focus {
+    border-color: #6366f1;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
