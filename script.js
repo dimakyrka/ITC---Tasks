@@ -99,15 +99,14 @@ async function fetchUserPermissions() {
             return snapshot.val().permissions;
         } else {
             console.warn('User permissions not found for ID:', userId);
-            showAccessDenied();
-            return null;
+            //showAccessDenied(); // Пока закомментируем, чтобы не вызывать ее дважды
+            return { view: false, edit: false, delete: false, archive: false, manageSubtasks: false }; // Возвращаем дефолтные права
         }
     } catch (error) {
         console.error('Error fetching user permissions:', error);
         showAccessDenied();
         return null;
     }
-}
 
 function showAccessDenied() {
     document.body.innerHTML = `
@@ -714,7 +713,7 @@ async function init() {
         state.userPermissions = permissions;
         initApp(); // Инициализируем остальную часть приложения только после получения прав
     } else {
-        // fetchUserPermissions already handles showing Access Denied if no permissions
+        showAccessDenied(); // Покажем Access Denied, если прав нет и fetchUserPermissions вернул null
     }
 
 }
