@@ -133,24 +133,26 @@ function setupApplication() {
 // Функция проверки прав
 async function checkUserPermissions(userId) {
   try {
-    const snapshot = await usersRef.child(userId).once('value');
+    console.log("Checking permissions for user:", userId); // Логируем ID
+    const snapshot = await database.ref('users/' + userId).once('value');
     const userData = snapshot.val();
+    console.log("Data from Firebase:", userData); // Логируем полученные данные
     
     if (userData) {
       return {
-        hasAccess: true,  // Даём доступ на просмотр, даже если нет других прав
-        permissions: userData.permissions || {
-          canAdd: false,
-          canEdit: false,
-          canDelete: false,
-          canArchive: false,
-          canManageSubtasks: false
+        hasAccess: true, // Доступ разрешён если запись существует
+        permissions: {
+          canAdd: userData.permissions?.canAdd || false,
+          canEdit: userData.permissions?.canEdit || false,
+          canDelete: userData.permissions?.canDelete || false,
+          canArchive: userData.permissions?.canArchive || false,
+          canManageSubtasks: userData.permissions?.canManageSubtasks || false
         }
       };
     }
-    return { hasAccess: false, permissions: null }; // Нет доступа
+    return { hasAccess: false, permissions: null };
   } catch (error) {
-    console.error("Error checking permissions:", error);
+    console.error("Permission check failed:", error);
     return { hasAccess: false, permissions: null };
   }
 }
