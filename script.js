@@ -1,4 +1,3 @@
-
 // Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
@@ -26,15 +25,7 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null,
-    userPermissions: {
-        view: false,
-        edit: false,
-        delete: false,
-        archive: false,
-        manageSubtasks: false
-    },
-    currentUserId: null
+    currentEditType: null
 };
 
 // ========== DOM элементы ==========
@@ -83,32 +74,6 @@ function initializeDataStructure() {
     });
 }
 
-// ========== Проверка прав доступа ==========
-async function fetchUserPermissions() {
-    const userId = localStorage.getItem('tg_user_id');
-    if (!userId) {
-        console.error('User ID not found');
-        showAccessDenied();
-        return null;
-    }
-
-    try {
-        const snapshot = await database.ref('users/' + userId).once('value');
-        if (snapshot.exists()) {
-            console.log('User permissions:', snapshot.val()); // Логируем данные
-            return snapshot.val().permissions;
-        } else {
-            console.warn('User permissions not found for ID:', userId);
-            showAccessDenied();
-            return null; // Возвращаем null, чтобы показать страницу "доступ запрещен"
-        }
-    } catch (error) {
-        console.error('Error fetching user permissions:', error);
-        showAccessDenied();
-        return null;
-    }
-}
-
 function showAccessDenied() {
     document.body.innerHTML = `
         <div class="access-denied">
@@ -116,10 +81,6 @@ function showAccessDenied() {
             <p>У вас нет прав для просмотра задач. Обратитесь к администратору.</p>
         </div>
     `;
-}
-
-function hasPermission(permission) {
-    return state.userPermissions[permission] === true;
 }
 
 // ========== Основные функции рендеринга ==========
@@ -135,10 +96,6 @@ function renderTasks() {
     state.tasks.forEach((task, index) => {
         DOM.tasksList.appendChild(createTaskElement(task, index, 'tasks'));
     });
-
-    // Скрыть кнопку добавления задач, если у пользователя нет прав на редактирование
-    DOM.addBtn.style.display = hasPermission('edit') ? 'block' : 'none';
-    DOM.taskForm.style.display = (state.currentTab !== 'archive' && state.userPermissions.edit) ? 'flex' : 'none';
 }
 
 function renderEvents() {
@@ -150,25 +107,25 @@ function renderEvents() {
 
 function renderArchive() {
     DOM.archiveList.innerHTML = '';
-
+    
     // Архив задач
     const archivedTasksHeader = document.createElement('h3');
     archivedTasksHeader.className = 'archive-header';
     archivedTasksHeader.textContent = 'Архив задач';
     DOM.archiveList.appendChild(archivedTasksHeader);
-
+    
     state.archived
         .filter(item => item.originalType === 'tasks')
         .forEach((item, index) => {
             DOM.archiveList.appendChild(createArchiveItem(item, index));
         });
-
+    
     // Архив мероприятий
     const archivedEventsHeader = document.createElement('h3');
     archivedEventsHeader.className = 'archive-header';
     archivedEventsHeader.textContent = 'Архив мероприятий';
     DOM.archiveList.appendChild(archivedEventsHeader);
-
+    
     state.archived
         .filter(item => item.originalType === 'events')
         .forEach((item, index) => {
@@ -181,7 +138,9 @@ function createTaskElement(item, index, type) {
     const taskEl = document.createElement('li');
     taskEl.className = 'task';
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
-
+    taskEl.setAttribute('draggable', 'true');
+    taskEl.dataset.index = index;
+    
     let actionsHTML = '';
     if (state.userPermissions.edit) {
         actionsHTML += `
@@ -203,12 +162,12 @@ function createTaskElement(item, index, type) {
             </button>
         `;
     }
-
+    
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
         <div class="task-actions">${actionsHTML}</div>
     `;
-
+    
     // Обработчики событий
     const contentEl = taskEl.querySelector('.task-content');
     if (type === 'tasks' && state.userPermissions.manageSubtasks) {
@@ -218,23 +177,21 @@ function createTaskElement(item, index, type) {
             }
         });
     }
-
-    const editBtn = taskEl.querySelector('.edit-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', (e) => {
+    
+    if (state.userPermissions.edit) {
+        taskEl.querySelector('.edit-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             openEditModal(index, type);
         });
     }
-
-    const deleteBtn = taskEl.querySelector('.delete-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', (e) => {
+    
+    if (state.userPermissions.delete) {
+        taskEl.querySelector('.delete-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             openDeleteModal(index, type);
         });
     }
-    taskEl.setAttribute('draggable', state.userPermissions.edit);
+    
     // Drag and Drop только для пользователей с правами edit
     if (state.userPermissions.edit) {
         taskEl.addEventListener('dragstart', handleDragStart);
@@ -244,8 +201,7 @@ function createTaskElement(item, index, type) {
     } else {
         taskEl.setAttribute('draggable', 'false');
     }
-
-
+    
     return taskEl;
 }
 
@@ -253,7 +209,7 @@ function createArchiveItem(item, index) {
     const archivedEl = document.createElement('li');
     archivedEl.className = 'task archived-item';
     archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
-
+    
     archivedEl.innerHTML = `
         <div class="task-content">${item.text}</div>
         <div class="task-actions">
@@ -271,26 +227,21 @@ function createArchiveItem(item, index) {
             </button>
         </div>
     `;
-
+    
     archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
         restoreFromArchive(index);
     });
-
+    
     archivedEl.querySelector('.delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         openDeleteModal(index, 'archived');
     });
-
+    
     return archivedEl;
 }
 
 // ========== Функции работы с данными ==========
 function addItem() {
-    if (!hasPermission('edit')) {
-        alert("У вас нет прав на добавление задач");
-        return;
-    }
-
     const text = DOM.taskInput.value.trim();
     if (!text) return;
 
@@ -300,7 +251,7 @@ function addItem() {
         createdAt: Date.now(),
         subtasks: []
     };
-
+    
     tasksRef.transaction((currentData) => {
         currentData = currentData || {};
         if (state.currentTab === 'tasks') {
@@ -317,12 +268,6 @@ function addItem() {
 }
 
 function saveEdit() {
-    if (!hasPermission('edit')) {
-        alert("У вас нет прав на редактирование задач");
-        DOM.editModal.classList.remove('active');
-        return;
-    }
-
     const newText = DOM.editInput.value.trim();
     if (!newText || state.currentEditIndex === null) return;
 
@@ -344,18 +289,12 @@ function saveEdit() {
 }
 
 function moveToArchive() {
-    if (!hasPermission('archive')) {
-        alert("У вас нет прав на архивацию задач");
-        DOM.editModal.classList.remove('active');
-        return;
-    }
-
     if (state.currentEditIndex === null || !state.currentEditType) return;
 
     tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
 
-        const itemToArchive = {
+        const itemToArchive = { 
             ...currentData[state.currentEditType][state.currentEditIndex],
             archivedAt: Date.now(),
             originalType: state.currentEditType
@@ -391,12 +330,6 @@ function restoreFromArchive(index) {
 }
 
 function deleteItem() {
-    if (!hasPermission('delete')) {
-        alert("У вас нет прав на удаление задач");
-        DOM.deleteModal.classList.remove('active');
-        return;
-    }
-
     if (state.currentDeleteIndex === null) return;
 
     tasksRef.transaction((currentData) => {
@@ -416,27 +349,23 @@ function deleteItem() {
 
 // ========== Функции подзадач ==========
 function openSubtasksModal(index) {
-    if (!hasPermission('manageSubtasks')) {
-        alert("У вас нет прав на управление подзадачами");
-        return;
-    }
     if (index === null || index === undefined || !state.tasks[index]) {
         console.error('Invalid task index:', index);
         return;
     }
-
+    
     state.currentTaskWithSubtasks = index;
     const task = state.tasks[index];
     DOM.subtasksTitle.textContent = task.text;
     DOM.subtasksList.innerHTML = '';
     DOM.subtaskInput.value = '';
-
+    
     if (task.subtasks && task.subtasks.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
             addSubtaskToDOM(subtask, subIndex);
         });
     }
-
+    
     DOM.subtasksModal.classList.add('active');
     DOM.subtaskInput.focus();
     document.addEventListener('keydown', handleEscKey);
@@ -459,12 +388,12 @@ function addSubtaskToDOM(subtask, index) {
             </svg>
         </button>
     `;
-
+    
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
     checkbox.addEventListener('change', function() {
         const isChecked = this.checked;
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
-
+        
         tasksRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
@@ -476,13 +405,13 @@ function addSubtaskToDOM(subtask, index) {
             subtaskEl.querySelector('label').classList.toggle('completed');
         });
     });
-
+    
     // Добавляем обработчик удаления подзадачи
     const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
     deleteBtn.addEventListener('click', () => {
         deleteSubtask(index);
     });
-
+    
     DOM.subtasksList.appendChild(subtaskEl);
 }
 
@@ -507,10 +436,6 @@ function deleteSubtask(index) {
 }
 
 function addSubtask() {
-    if (!hasPermission('manageSubtasks')) {
-        alert("У вас нет прав на управление подзадачами");
-        return;
-    }
     const text = DOM.subtaskInput.value.trim();
     if (!text || state.currentTaskWithSubtasks === null) return;
 
@@ -529,11 +454,11 @@ function addSubtask() {
     // Обновление в Firebase
     tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
-
+        
         if (!currentData.tasks[state.currentTaskWithSubtasks].subtasks) {
             currentData.tasks[state.currentTaskWithSubtasks].subtasks = [];
         }
-
+        
         currentData.tasks[state.currentTaskWithSubtasks].subtasks.push(newSubtask);
         return currentData;
     }).catch((error) => {
@@ -596,16 +521,11 @@ function updateEmptyStates() {
 }
 
 function openEditModal(index, type) {
-    if (!hasPermission('edit')) {
-        alert("У вас нет прав на редактирование задач");
-        return;
-    }
-
     state.currentEditIndex = index;
     state.currentEditType = type;
-    const item = type === 'tasks' ? state.tasks[index] :
-        type === 'events' ? state.events[index] :
-            state.archived[index];
+    const item = type === 'tasks' ? state.tasks[index] : 
+                 type === 'events' ? state.events[index] : 
+                 state.archived[index];
     DOM.editInput.value = item.text;
     state.selectedColor = item.color || '#e5e7eb';
     updateColorSelection();
@@ -614,11 +534,6 @@ function openEditModal(index, type) {
 }
 
 function openDeleteModal(index, type) {
-    if (!hasPermission('delete')) {
-        alert("У вас нет прав на удаление задач");
-        return;
-    }
-
     state.currentDeleteIndex = index;
     state.currentEditType = type;
     DOM.deleteModal.classList.add('active');
@@ -649,20 +564,20 @@ function initEventListeners() {
         btn.addEventListener('click', () => {
             DOM.tabBtns.forEach(b => b.classList.remove('active'));
             DOM.tabContents.forEach(c => c.classList.remove('active'));
-
+            
             btn.classList.add('active');
             state.currentTab = btn.dataset.tab;
             document.getElementById(`${state.currentTab}-tab`).classList.add('active');
-            DOM.taskForm.style.display = (state.currentTab !== 'archive' && state.userPermissions.edit) ? 'flex' : 'none';
+            DOM.taskForm.style.display = state.currentTab === 'archive' ? 'none' : 'flex';
         });
     });
-
+    
     // Добавление задач
     DOM.addBtn.addEventListener('click', addItem);
     DOM.taskInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addItem();
     });
-
+    
     // Редактирование
     DOM.saveEditBtn.addEventListener('click', saveEdit);
     DOM.editInput.addEventListener('keypress', (e) => {
@@ -672,7 +587,7 @@ function initEventListeners() {
         DOM.editModal.classList.remove('active');
     });
     DOM.archiveBtn.addEventListener('click', moveToArchive);
-
+    
     // Цвета
     DOM.colorOptions.forEach(option => {
         option.addEventListener('click', () => {
@@ -680,13 +595,13 @@ function initEventListeners() {
             updateColorSelection();
         });
     });
-
+    
     // Удаление
     DOM.confirmDeleteBtn.addEventListener('click', deleteItem);
     DOM.cancelDeleteBtn.addEventListener('click', () => {
         DOM.deleteModal.classList.remove('active');
     });
-
+    
     // Подзадачи
     DOM.addSubtaskBtn.addEventListener('click', addSubtask);
     DOM.subtaskInput.addEventListener('keypress', (e) => {
@@ -696,32 +611,20 @@ function initEventListeners() {
 
     // Закрытие модалки подзадач
     DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
-
+    
     // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
-
+    
     document.addEventListener('keydown', handleEscKey);
 }
 
 // ========== Инициализация приложения ==========
 // ========== Инициализация приложения ==========
-// ========== Инициализация приложения ==========
-async function init() {
+function init() {
     initializeDataStructure();
-
-    const permissions = await fetchUserPermissions();
-    if (permissions) {
-        state.userPermissions = permissions;
-        initApp(); // Инициализируем остальную часть приложения только после получения прав
-    } else {
-        showAccessDenied(); // Покажем Access Denied, если прав нет и fetchUserPermissions вернул null
-    }
-
-}
-
-function initApp() {
+    
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
@@ -730,11 +633,14 @@ function initApp() {
         state.archived = data.archived || [];
         renderAll();
     });
-
-    // Показываем/скрываем форму добавления в зависимости от прав
-    DOM.taskForm.style.display = (state.currentTab !== 'archive' && state.userPermissions.edit) ? 'flex' : 'none';
-
+    
     initEventListeners();
+    DOM.taskForm.style.display = 'flex';
+    
+    // Инициализация Telegram Web App
+    document.addEventListener('DOMContentLoaded', () => {
+        window.Telegram.WebApp.expand();
+    });
 }
 
 // Запуск приложения
