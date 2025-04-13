@@ -98,46 +98,41 @@ function setupApplication() {
 
 // Функция проверки прав
 async function checkUserPermissions(userId) {
-    try {
-        const snapshot = await usersRef.child(userId).once('value');
-        const userData = snapshot.val();
-        
-        if (userData) {
-            return {
-                hasAccess: true,
-                permissions: userData.permissions || state.userPermissions
-            };
+  try {
+    const snapshot = await usersRef.child(userId).once('value');
+    const userData = snapshot.val();
+    
+    if (userData) {
+      return {
+        hasAccess: true,  // Даём доступ на просмотр, даже если нет других прав
+        permissions: userData.permissions || {
+          canAdd: false,
+          canEdit: false,
+          canDelete: false,
+          canArchive: false,
+          canManageSubtasks: false
         }
-        return { hasAccess: false, permissions: null };
-    } catch (error) {
-        console.error("Error checking permissions:", error);
-        return { hasAccess: false, permissions: null };
+      };
     }
+    return { hasAccess: false, permissions: null }; // Нет доступа
+  } catch (error) {
+    console.error("Error checking permissions:", error);
+    return { hasAccess: false, permissions: null };
+  }
 }
 
 function updateUIForPermissions() {
-    // Форма добавления
-    DOM.taskForm.style.display = state.userPermissions.canAdd ? 'flex' : 'none';
-    
-    // Кнопки действий
-    document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.style.display = state.userPermissions.canEdit ? 'flex' : 'none';
-    });
-    
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.style.display = state.userPermissions.canDelete ? 'flex' : 'none';
-    });
-    
-    // Кнопка архива в модалке редактирования
-    DOM.archiveBtn.style.display = state.userPermissions.canArchive ? 'block' : 'none';
-    
-    // Кликабельность задач для подзадач
-    if (!state.userPermissions.canManageSubtasks) {
-        document.querySelectorAll('#tasks .task-content').forEach(el => {
-            el.style.pointerEvents = 'none';
-            el.style.cursor = 'default';
-        });
-    }
+  // Всегда показываем задачи (но блокируем действия)
+  DOM.taskForm.style.display = state.userPermissions.canAdd ? 'flex' : 'none';
+  
+  // Кнопки редактирования/удаления
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.style.display = state.userPermissions.canEdit ? 'flex' : 'none';
+  });
+  
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.style.display = state.userPermissions.canDelete ? 'flex' : 'none';
+  });
 }
 
 function showAccessDenied() {
@@ -690,28 +685,26 @@ function initEventListeners() {
 // ========== Инициализация приложения ==========
 // Инициализация приложения
 async function init() {
-    // Проверка DOM элементов
-    if (!validateDOMElements()) {
-        showAccessDenied("Ошибка инициализации приложения");
-        return;
-    }
+  if (!validateDOMElements()) {
+    showAccessDenied("Ошибка инициализации");
+    return;
+  }
 
-    // Получаем ID пользователя
-    const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
+  const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
+  
+  if (tgUserId) {
+    const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
     
-    if (tgUserId) {
-        const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
-        
-        if (hasAccess) {
-            state.currentUser = tgUserId;
-            state.userPermissions = permissions;
-            setupApplication();
-        } else {
-            showAccessDenied("У вас нет доступа к приложению");
-        }
+    if (hasAccess) {
+      state.currentUser = tgUserId;
+      state.userPermissions = permissions;
+      setupApplication();  // Всегда вызываем, если hasAccess === true
     } else {
-        showAccessDenied("Не удалось идентифицировать пользователя");
+      showAccessDenied("Нет доступа");
     }
+  } else {
+    showAccessDenied("Не удалось идентифицировать пользователя");
+  }
 }
 
 
