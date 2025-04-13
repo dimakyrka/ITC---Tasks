@@ -1,3 +1,37 @@
+// ========== Валидация DOM элементов ==========
+function validateDOMElements() {
+    const requiredElements = {
+        taskInput: DOM.taskInput,
+        addBtn: DOM.addBtn,
+        tasksList: DOM.tasksList,
+        tabBtns: DOM.tabBtns.length > 0,
+        tabContents: DOM.tabContents.length > 0
+    };
+
+    let isValid = true;
+    
+    for (const [key, element] of Object.entries(requiredElements)) {
+        if (!element) {
+            console.error(`Не найден обязательный DOM элемент: ${key}`);
+            isValid = false;
+        }
+    }
+
+    if (!isValid) {
+        console.error("Проверьте структуру HTML-документа");
+        document.body.innerHTML = `
+            <div class="error-message">
+                <h2>Ошибка загрузки приложения</h2>
+                <p>Некоторые элементы интерфейса не найдены.</p>
+                <p>Пожалуйста, перезагрузите страницу.</p>
+            </div>
+        `;
+    }
+
+    return isValid;
+}
+
+
 // Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
@@ -685,26 +719,32 @@ function initEventListeners() {
 // ========== Инициализация приложения ==========
 // Инициализация приложения
 async function init() {
-  if (!validateDOMElements()) {
-    showAccessDenied("Ошибка инициализации");
-    return;
-  }
-
-  const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
-  
-  if (tgUserId) {
-    const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
-    
-    if (hasAccess) {
-      state.currentUser = tgUserId;
-      state.userPermissions = permissions;
-      setupApplication();  // Всегда вызываем, если hasAccess === true
-    } else {
-      showAccessDenied("Нет доступа");
+    // Проверка DOM элементов
+    if (!validateDOMElements()) {
+        return; // Прекращаем инициализацию
     }
-  } else {
-    showAccessDenied("Не удалось идентифицировать пользователя");
-  }
+
+    try {
+        // Получаем ID пользователя Telegram
+        const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
+        
+        if (tgUserId) {
+            const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
+            
+            if (hasAccess) {
+                state.currentUser = tgUserId;
+                state.userPermissions = permissions;
+                setupApplication();
+            } else {
+                showAccessDenied("У вас нет доступа к приложению");
+            }
+        } else {
+            showAccessDenied("Не удалось идентифицировать пользователя");
+        }
+    } catch (error) {
+        console.error("Ошибка инициализации:", error);
+        showAccessDenied("Произошла ошибка при загрузке");
+    }
 }
 
 
