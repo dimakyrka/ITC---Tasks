@@ -1,37 +1,3 @@
-// ========== Валидация DOM элементов ==========
-function validateDOMElements() {
-    const requiredElements = {
-        taskInput: DOM.taskInput,
-        addBtn: DOM.addBtn,
-        tasksList: DOM.tasksList,
-        tabBtns: DOM.tabBtns.length > 0,
-        tabContents: DOM.tabContents.length > 0
-    };
-
-    let isValid = true;
-    
-    for (const [key, element] of Object.entries(requiredElements)) {
-        if (!element) {
-            console.error(`Не найден обязательный DOM элемент: ${key}`);
-            isValid = false;
-        }
-    }
-
-    if (!isValid) {
-        console.error("Проверьте структуру HTML-документа");
-        document.body.innerHTML = `
-            <div class="error-message">
-                <h2>Ошибка загрузки приложения</h2>
-                <p>Некоторые элементы интерфейса не найдены.</p>
-                <p>Пожалуйста, перезагрузите страницу.</p>
-            </div>
-        `;
-    }
-
-    return isValid;
-}
-
-
 // Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
@@ -47,7 +13,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const tasksRef = database.ref('tasks');
-const usersRef = database.ref('users');
 
 // ========== Состояние приложения ==========
 const state = {
@@ -61,14 +26,14 @@ const state = {
     draggedItem: null,
     currentTaskWithSubtasks: null,
     currentEditType: null,
-    currentUser: null,
     userPermissions: {
-        canAdd: false,
-        canEdit: false,
-        canDelete: false,
-        canArchive: false,
-        canManageSubtasks: false
-    }
+        view: false,
+        edit: false,
+        delete: false,
+        archive: false,
+        manageSubtasks: false
+    },
+    currentUserId: null
 };
 
 // ========== DOM элементы ==========
@@ -100,6 +65,7 @@ const DOM = {
     subtaskInput: document.getElementById('subtask-input'),
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
+    closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form')
 };
 
@@ -116,71 +82,45 @@ function initializeDataStructure() {
     });
 }
 
-function setupApplication() {
-    // Загрузка задач
-    tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
-        renderAll();
-        updateUIForPermissions();
-    });
-
-    initEventListeners();
-}
-
-// Функция проверки прав
-async function checkUserPermissions(userId) {
-  try {
-    console.log("Checking permissions for user:", userId); // Логируем ID
-    const snapshot = await database.ref('users/' + userId).once('value');
-    const userData = snapshot.val();
-    console.log("Data from Firebase:", userData); // Логируем полученные данные
-    
-    if (userData) {
-      return {
-        hasAccess: true, // Доступ разрешён если запись существует
-        permissions: {
-          canAdd: userData.permissions?.canAdd || false,
-          canEdit: userData.permissions?.canEdit || false,
-          canDelete: userData.permissions?.canDelete || false,
-          canArchive: userData.permissions?.canArchive || false,
-          canManageSubtasks: userData.permissions?.canManageSubtasks || false
-        }
-      };
+// В начале файла, после инициализации Firebase
+// ========== Проверка прав доступа ==========
+function checkUserPermissions() {
+    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    if (!tgUser) {
+        showAccessDenied();
+        return;
     }
-    return { hasAccess: false, permissions: null };
-  } catch (error) {
-    console.error("Permission check failed:", error);
-    return { hasAccess: false, permissions: null };
-  }
-}
 
-function updateUIForPermissions() {
-  // Всегда показываем задачи (но блокируем действия)
-  DOM.taskForm.style.display = state.userPermissions.canAdd ? 'flex' : 'none';
-  
-  // Кнопки редактирования/удаления
-  document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.style.display = state.userPermissions.canEdit ? 'flex' : 'none';
-  });
-  
-  document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.style.display = state.userPermissions.canDelete ? 'flex' : 'none';
-  });
+    state.currentUserId = tgUser.id;
+    
+    // Проверяем права пользователя в Firebase
+    database.ref('users/' + tgUser.id).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            const userData = snapshot.val();
+            state.userPermissions = {
+                view: true,
+                edit: userData.permissions?.edit || false,
+                delete: userData.permissions?.delete || false,
+                archive: userData.permissions?.archive || false,
+                manageSubtasks: userData.permissions?.manageSubtasks || false
+            };
+            initApp();
+        } else {
+            showAccessDenied();
+        }
+    }).catch(() => {
+        showAccessDenied();
+    });
 }
 
 function showAccessDenied() {
     document.body.innerHTML = `
         <div class="access-denied">
             <h2>Доступ запрещен</h2>
-            <p>У вас нет прав для использования этого приложения.</p>
-            <p>Обратитесь к администратору.</p>
+            <p>У вас нет прав для просмотра задач. Обратитесь к администратору.</p>
         </div>
     `;
 }
-
 
 // ========== Основные функции рендеринга ==========
 function renderAll() {
@@ -232,7 +172,7 @@ function renderArchive() {
         });
 }
 
-// ========== Создание элементов DOM ==========
+// ========== Модифицированные функции с проверкой прав ==========
 function createTaskElement(item, index, type) {
     const taskEl = document.createElement('li');
     taskEl.className = 'task';
@@ -240,46 +180,66 @@ function createTaskElement(item, index, type) {
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
     
-    taskEl.innerHTML = `
-        <div class="task-content">${item.text}</div>
-        <div class="task-actions">
+    let actionsHTML = '';
+    if (state.userPermissions.edit) {
+        actionsHTML += `
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
             </button>
+        `;
+    }
+    if (state.userPermissions.delete) {
+        actionsHTML += `
             <button class="btn-icon delete-btn" title="Удалить">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
             </button>
-        </div>
+        `;
+    }
+    
+    taskEl.innerHTML = `
+        <div class="task-content">${item.text}</div>
+        <div class="task-actions">${actionsHTML}</div>
     `;
     
     // Обработчики событий
-    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
-        if (!e.target.closest('.task-actions') && type === 'tasks') {
-            openSubtasksModal(index);
-        }
-    });
+    const contentEl = taskEl.querySelector('.task-content');
+    if (type === 'tasks' && state.userPermissions.manageSubtasks) {
+        contentEl.addEventListener('click', (e) => {
+            if (!e.target.closest('.task-actions')) {
+                openSubtasksModal(index);
+            }
+        });
+    }
     
-    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEditModal(index, type);
-    });
+    if (state.userPermissions.edit) {
+        taskEl.querySelector('.edit-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditModal(index, type);
+        });
+    }
     
-    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDeleteModal(index, type);
-    });
+    if (state.userPermissions.delete) {
+        taskEl.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDeleteModal(index, type);
+        });
+    }
     
-    // Drag and Drop
-    taskEl.addEventListener('dragstart', handleDragStart);
-    taskEl.addEventListener('dragover', handleDragOver);
-    taskEl.addEventListener('drop', handleDrop);
-    taskEl.addEventListener('dragend', handleDragEnd);
+    // Drag and Drop только для пользователей с правами edit
+    if (state.userPermissions.edit) {
+        taskEl.addEventListener('dragstart', handleDragStart);
+        taskEl.addEventListener('dragover', handleDragOver);
+        taskEl.addEventListener('drop', handleDrop);
+        taskEl.addEventListener('dragend', handleDragEnd);
+    } else {
+        taskEl.setAttribute('draggable', 'false');
+    }
     
     return taskEl;
 }
@@ -638,11 +598,9 @@ function handleEscKey(e) {
 
 // ========== Инициализация событий ==========
 function initEventListeners() {
-    // 1. Обработчики вкладок
+    // Вкладки
     DOM.tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            if (!state.userPermissions.canAdd && !state.userPermissions.canEdit) return;
-            
             DOM.tabBtns.forEach(b => b.classList.remove('active'));
             DOM.tabContents.forEach(c => c.classList.remove('active'));
             
@@ -653,19 +611,13 @@ function initEventListeners() {
         });
     });
     
-    // 2. Добавление задач/мероприятий (только для пользователей с правами)
-    if (state.userPermissions.canAdd) {
-        DOM.addBtn.addEventListener('click', addItem);
-        DOM.taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addItem();
-        });
-    } else {
-        DOM.taskInput.disabled = true;
-        DOM.addBtn.style.opacity = '0.5';
-        DOM.addBtn.style.cursor = 'not-allowed';
-    }
+    // Добавление задач
+    DOM.addBtn.addEventListener('click', addItem);
+    DOM.taskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addItem();
+    });
     
-    // 3. Редактирование (проверка прав в самой функции openEditModal)
+    // Редактирование
     DOM.saveEditBtn.addEventListener('click', saveEdit);
     DOM.editInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') saveEdit();
@@ -673,44 +625,33 @@ function initEventListeners() {
     DOM.cancelEditBtn.addEventListener('click', () => {
         DOM.editModal.classList.remove('active');
     });
+    DOM.archiveBtn.addEventListener('click', moveToArchive);
     
-    // 4. Архивация (показываем кнопку только если есть права)
-    if (state.userPermissions.canArchive) {
-        DOM.archiveBtn.addEventListener('click', moveToArchive);
-    } else {
-        DOM.archiveBtn.style.display = 'none';
-    }
-    
-    // 5. Цвета (доступны только для редактирования)
+    // Цвета
     DOM.colorOptions.forEach(option => {
         option.addEventListener('click', () => {
-            if (!state.userPermissions.canEdit) return;
             state.selectedColor = option.dataset.color;
             updateColorSelection();
         });
     });
     
-    // 6. Удаление (проверка прав в openDeleteModal)
+    // Удаление
     DOM.confirmDeleteBtn.addEventListener('click', deleteItem);
     DOM.cancelDeleteBtn.addEventListener('click', () => {
         DOM.deleteModal.classList.remove('active');
     });
     
-    // 7. Подзадачи (проверка прав)
-    if (state.userPermissions.canManageSubtasks) {
-        DOM.addSubtaskBtn.addEventListener('click', addSubtask);
-        DOM.subtaskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addSubtask();
-        });
-    } else {
-        DOM.subtaskInput.disabled = true;
-        DOM.addSubtaskBtn.style.opacity = '0.5';
-        DOM.addSubtaskBtn.style.cursor = 'not-allowed';
-    }
-    
+    // Подзадачи
+    DOM.addSubtaskBtn.addEventListener('click', addSubtask);
+    DOM.subtaskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addSubtask();
+    });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+
+    // Закрытие модалки подзадач
+    DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
     
-    // 8. Глобальные обработчики
+    // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
@@ -719,43 +660,27 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-// Инициализация приложения
-async function init() {
-  const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
-  console.log("Detected Telegram User ID:", tgUserId); // Добавьте эту строку
-  
-  if (tgUserId) {
-    const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
-    console.log("Access check result:", { hasAccess, permissions }); // И эту
-    if (!validateDOMElements()) {
-        return; // Прекращаем инициализацию
-    }
-
-    try {
-        // Получаем ID пользователя Telegram
-        const tgUserId = window.Telegram.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('tg_user_id');
-        
-        if (tgUserId) {
-            const { hasAccess, permissions } = await checkUserPermissions(tgUserId);
-            
-            if (hasAccess) {
-                state.currentUser = tgUserId;
-                state.userPermissions = permissions;
-                setupApplication();
-            } else {
-                showAccessDenied("У вас нет доступа к приложению");
-            }
-        } else {
-            showAccessDenied("Не удалось идентифицировать пользователя");
-        }
-    } catch (error) {
-        console.error("Ошибка инициализации:", error);
-        showAccessDenied("Произошла ошибка при загрузке");
-    }
+// Обновляем функцию init()
+function init() {
+    initializeDataStructure();
+    checkUserPermissions();
 }
 
-
+function initApp() {
+    // Загрузка данных из Firebase
+    tasksRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        state.tasks = data.tasks || [];
+        state.events = data.events || [];
+        state.archived = data.archived || [];
+        renderAll();
+    });
+    
+    // Показываем/скрываем форму добавления в зависимости от прав
+    DOM.taskForm.style.display = (state.currentTab !== 'archive' && state.userPermissions.edit) ? 'flex' : 'none';
+    
+    initEventListeners();
+}
 
 // Запуск приложения
 init();
-
