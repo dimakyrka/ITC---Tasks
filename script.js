@@ -57,7 +57,7 @@ const DOM = {
     subtaskInput: document.getElementById('subtask-input'),
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
-    closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
+    //closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form')
 };
 
@@ -65,12 +65,15 @@ const DOM = {
 function initializeDataStructure() {
     tasksRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
+            // Инициализируем правильную структуру данных
             tasksRef.set({
                 tasks: [],
                 events: [],
                 archived: []
             });
         }
+    }).catch(error => {
+        console.error("Ошибка инициализации структуры данных:", error);
     });
 }
 
@@ -141,31 +144,25 @@ function createTaskElement(item, index, type) {
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
     
-    let actionsHTML = '';
-    if (state.userPermissions.edit) {
-        actionsHTML += `
+    // Проверяем, существует ли item.text
+    const taskText = item.text || 'Новая задача';
+    
+    taskEl.innerHTML = `
+        <div class="task-content">${taskText}</div>
+        <div class="task-actions">
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
             </button>
-        `;
-    }
-    if (state.userPermissions.delete) {
-        actionsHTML += `
             <button class="btn-icon delete-btn" title="Удалить">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
             </button>
-        `;
-    }
-    
-    taskEl.innerHTML = `
-        <div class="task-content">${item.text}</div>
-        <div class="task-actions">${actionsHTML}</div>
+        </div>
     `;
     
     // Обработчики событий
@@ -610,7 +607,7 @@ function initEventListeners() {
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
 
     // Закрытие модалки подзадач
-    DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+    //DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
     
     // Закрытие модалок
     window.addEventListener('click', (e) => {
@@ -627,10 +624,17 @@ function init() {
     
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
+        const data = snapshot.val() || { tasks: [], events: [], archived: [] };
         state.tasks = data.tasks || [];
         state.events = data.events || [];
         state.archived = data.archived || [];
+        renderAll();
+    }, (error) => {
+        console.error("Ошибка чтения данных:", error);
+        // Инициализируем пустые данные при ошибке
+        state.tasks = [];
+        state.events = [];
+        state.archived = [];
         renderAll();
     });
     
@@ -638,9 +642,9 @@ function init() {
     DOM.taskForm.style.display = 'flex';
     
     // Инициализация Telegram Web App
-    document.addEventListener('DOMContentLoaded', () => {
+    if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.expand();
-    });
+    }
 }
 
 // Запуск приложения
