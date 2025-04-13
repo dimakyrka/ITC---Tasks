@@ -705,6 +705,7 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
+// ========== Инициализация приложения ==========
 async function init() {
     initializeDataStructure();
 
