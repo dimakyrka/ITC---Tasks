@@ -58,7 +58,8 @@ const DOM = {
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
     closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
-    taskForm: document.querySelector('.task-form')
+    taskForm: document.querySelector('.task-form'),
+    editAssignedTo: document.getElementById('edit-assigned-to') 
 };
 
 // ========== Инициализация Firebase ==========
@@ -126,14 +127,20 @@ function renderArchive() {
 
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
-    const taskEl = document.createElement('li');
+        const taskEl = document.createElement('li');
     taskEl.className = 'task';
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
     
+    // Добавляем иконку и имя ответственного (если есть)
+    const assignedHtml = item.assignedTo 
+        ? `<div class="task-assigned-to">👤 ${item.assignedTo}</div>` 
+        : '';
+
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
+        ${assignedHtml}
         <div class="task-actions">
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -240,19 +247,15 @@ function addItem() {
 
 function saveEdit() {
     const newText = DOM.editInput.value.trim();
+    const assignedTo = DOM.editAssignedTo.value.trim(); // Получаем выбранное имя из select
+    
     if (!newText || state.currentEditIndex === null) return;
 
     tasksRef.transaction((currentData) => {
-        if (state.currentEditType === 'tasks') {
-            currentData.tasks[state.currentEditIndex].text = newText;
-            currentData.tasks[state.currentEditIndex].color = state.selectedColor;
-        } else if (state.currentEditType === 'events') {
-            currentData.events[state.currentEditIndex].text = newText;
-            currentData.events[state.currentEditIndex].color = state.selectedColor;
-        } else {
-            currentData.archived[state.currentEditIndex].text = newText;
-            currentData.archived[state.currentEditIndex].color = state.selectedColor;
-        }
+        const item = currentData[state.currentEditType][state.currentEditIndex];
+        item.text = newText;
+        item.color = state.selectedColor;
+        item.assignedTo = assignedTo; // Сохраняем имя (пустая строка, если "Не назначено")
         return currentData;
     }).then(() => {
         DOM.editModal.classList.remove('active');
@@ -497,8 +500,11 @@ function openEditModal(index, type) {
     const item = type === 'tasks' ? state.tasks[index] : 
                  type === 'events' ? state.events[index] : 
                  state.archived[index];
+    
     DOM.editInput.value = item.text;
+    DOM.editAssignedTo.value = item.assignedTo || ''; // Автоматически выбираем текущее имя в select
     state.selectedColor = item.color || '#e5e7eb';
+    
     updateColorSelection();
     DOM.editModal.classList.add('active');
     DOM.editInput.focus();
