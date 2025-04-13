@@ -99,14 +99,15 @@ async function fetchUserPermissions() {
             return snapshot.val().permissions;
         } else {
             console.warn('User permissions not found for ID:', userId);
-            //showAccessDenied(); // Пока закомментируем, чтобы не вызывать ее дважды
-            return { view: false, edit: false, delete: false, archive: false, manageSubtasks: false }; // Возвращаем дефолтные права
+            showAccessDenied();
+            return null; // Возвращаем null, чтобы показать страницу "доступ запрещен"
         }
     } catch (error) {
         console.error('Error fetching user permissions:', error);
         showAccessDenied();
         return null;
     }
+}
 
 function showAccessDenied() {
     document.body.innerHTML = `
@@ -705,12 +706,7 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-    // ========== Инициализация приложения ==========
-
-    // ========== Инициализация приложения ==========
-
-    // ========== Инициализация приложения ==========
-
+// ========== Инициализация приложения ==========
 // ========== Инициализация приложения ==========
 async function init() {
     initializeDataStructure();
