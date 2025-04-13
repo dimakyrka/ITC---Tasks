@@ -57,7 +57,7 @@ const DOM = {
     subtaskInput: document.getElementById('subtask-input'),
     addSubtaskBtn: document.getElementById('add-subtask-btn'),
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
-    //closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
+    closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form')
 };
 
@@ -65,25 +65,13 @@ const DOM = {
 function initializeDataStructure() {
     tasksRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
-            // Инициализируем правильную структуру данных
             tasksRef.set({
                 tasks: [],
                 events: [],
                 archived: []
             });
         }
-    }).catch(error => {
-        console.error("Ошибка инициализации структуры данных:", error);
     });
-}
-
-function showAccessDenied() {
-    document.body.innerHTML = `
-        <div class="access-denied">
-            <h2>Доступ запрещен</h2>
-            <p>У вас нет прав для просмотра задач. Обратитесь к администратору.</p>
-        </div>
-    `;
 }
 
 // ========== Основные функции рендеринга ==========
@@ -136,7 +124,7 @@ function renderArchive() {
         });
 }
 
-// ========== Модифицированные функции с проверкой прав ==========
+// ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
     const taskEl = document.createElement('li');
     taskEl.className = 'task';
@@ -144,11 +132,8 @@ function createTaskElement(item, index, type) {
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
     
-    // Проверяем, существует ли item.text
-    const taskText = item.text || 'Новая задача';
-    
     taskEl.innerHTML = `
-        <div class="task-content">${taskText}</div>
+        <div class="task-content">${item.text}</div>
         <div class="task-actions">
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -166,38 +151,27 @@ function createTaskElement(item, index, type) {
     `;
     
     // Обработчики событий
-    const contentEl = taskEl.querySelector('.task-content');
-    if (type === 'tasks' && state.userPermissions.manageSubtasks) {
-        contentEl.addEventListener('click', (e) => {
-            if (!e.target.closest('.task-actions')) {
-                openSubtasksModal(index);
-            }
-        });
-    }
+    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+        if (!e.target.closest('.task-actions') && type === 'tasks') {
+            openSubtasksModal(index);
+        }
+    });
     
-    if (state.userPermissions.edit) {
-        taskEl.querySelector('.edit-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openEditModal(index, type);
-        });
-    }
+    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(index, type);
+    });
     
-    if (state.userPermissions.delete) {
-        taskEl.querySelector('.delete-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openDeleteModal(index, type);
-        });
-    }
+    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, type);
+    });
     
-    // Drag and Drop только для пользователей с правами edit
-    if (state.userPermissions.edit) {
-        taskEl.addEventListener('dragstart', handleDragStart);
-        taskEl.addEventListener('dragover', handleDragOver);
-        taskEl.addEventListener('drop', handleDrop);
-        taskEl.addEventListener('dragend', handleDragEnd);
-    } else {
-        taskEl.setAttribute('draggable', 'false');
-    }
+    // Drag and Drop
+    taskEl.addEventListener('dragstart', handleDragStart);
+    taskEl.addEventListener('dragover', handleDragOver);
+    taskEl.addEventListener('drop', handleDrop);
+    taskEl.addEventListener('dragend', handleDragEnd);
     
     return taskEl;
 }
@@ -378,19 +352,16 @@ function addSubtaskToDOM(subtask, index) {
         <label for="subtask-${index}" class="subtask-text ${subtask.completed ? 'completed' : ''}">
             ${subtask.text}
         </label>
-        <button class="btn-icon delete-subtask-btn" title="Удалить подзадачу">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-        </button>
     `;
     
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
     checkbox.addEventListener('change', function() {
         const isChecked = this.checked;
+        
+        // Оптимистичное обновление UI
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
         
+        // Обновление в Firebase
         tasksRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
@@ -403,33 +374,7 @@ function addSubtaskToDOM(subtask, index) {
         });
     });
     
-    // Добавляем обработчик удаления подзадачи
-    const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
-    deleteBtn.addEventListener('click', () => {
-        deleteSubtask(index);
-    });
-    
     DOM.subtasksList.appendChild(subtaskEl);
-}
-
-function deleteSubtask(index) {
-    tasksRef.transaction((currentData) => {
-        if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks) {
-            currentData.tasks[state.currentTaskWithSubtasks].subtasks.splice(index, 1);
-        }
-        return currentData;
-    }).then(() => {
-        // После успешного удаления в Firebase, перерисовываем подзадачи
-        const task = state.tasks[state.currentTaskWithSubtasks];
-        DOM.subtasksList.innerHTML = '';
-        if (task.subtasks && task.subtasks.length > 0) {
-            task.subtasks.forEach((subtask, subIndex) => {
-                addSubtaskToDOM(subtask, subIndex);
-            });
-        }
-    }).catch(error => {
-        console.error('Error deleting subtask:', error);
-    });
 }
 
 function addSubtask() {
@@ -605,10 +550,8 @@ function initEventListeners() {
         if (e.key === 'Enter') addSubtask();
     });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+    DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
 
-    // Закрытие модалки подзадач
-    //DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
-    
     // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
@@ -618,33 +561,20 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-// ========== Инициализация приложения ==========
 function init() {
     initializeDataStructure();
     
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || { tasks: [], events: [], archived: [] };
+        const data = snapshot.val() || {};
         state.tasks = data.tasks || [];
         state.events = data.events || [];
         state.archived = data.archived || [];
-        renderAll();
-    }, (error) => {
-        console.error("Ошибка чтения данных:", error);
-        // Инициализируем пустые данные при ошибке
-        state.tasks = [];
-        state.events = [];
-        state.archived = [];
         renderAll();
     });
     
     initEventListeners();
     DOM.taskForm.style.display = 'flex';
-    
-    // Инициализация Telegram Web App
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.expand();
-    }
 }
 
 // Запуск приложения
