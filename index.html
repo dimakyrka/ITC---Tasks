@@ -62,7 +62,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно подзадач -->
+    <!-- Модальное окно подзадач (исправленная версия) -->
     <div class="modal" id="subtasks-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -84,6 +84,10 @@
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
+            </div>
+            <!-- Добавлена кнопка закрытия (которая была пропущена) -->
+            <div class="modal-footer">
+                <button id="close-subtasks-btn" class="btn btn-outline">Закрыть</button>
             </div>
         </div>
     </div>
@@ -120,6 +124,7 @@
         </div>
     </div>
 
+    <!-- Скрипт должен быть в конце body -->
     <script src="script.js"></script>
 </body>
 </html>
