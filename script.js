@@ -12,7 +12,8 @@ const firebaseConfig = {
 // ========== Инициализация приложения ==========
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const tasksRef = database.ref('tasks');
+const dbRef = database.ref(); // Корневая ссылка на базу данных
+const tasksRef = dbRef.child('tasks'); // Для обратной совместимости
 
 // ========== Состояние приложения ==========
 const state = {
@@ -71,15 +72,14 @@ const DOM = {
 };
 
 function initializeDataStructure() {
-    tasksRef.once('value').then((snapshot) => {
+    dbRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
-            // Устанавливаем только если нет данных вообще
             const initialData = {
                 tasks: [],
                 events: [],
                 archived: [],
                 users: {
-                    "647523973": {  // Ваш ID по умолчанию
+                    "647523973": { // Ваш ID по умолчанию
                         name: "Димка",
                         permissions: {
                             view: true,
@@ -91,9 +91,9 @@ function initializeDataStructure() {
                     }
                 }
             };
-            tasksRef.set(initialData);
+            dbRef.set(initialData).catch(console.error);
         }
-    });
+    }).catch(console.error);
 }
 
 // Функция проверки прав (полная версия)
@@ -748,28 +748,34 @@ function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const tgId = urlParams.get('tgid') || getTgIdFromInitData();
     
-    // Сначала загружаем данные
+    // Загружаем данные
     dbRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
-        
-        // Затем проверяем права
-        if (tgId) {
-            checkPermissions(tgId);
-        } else {
-            state.userPermissions = {
-                view: true,
-                edit: false,
-                delete: false,
-                archive: false,
-                manageSubtasks: false
-            };
-            updateUI();
+        try {
+            const data = snapshot.val() || {};
+            state.tasks = data.tasks || [];
+            state.events = data.events || [];
+            state.archived = data.archived || [];
+            
+            // Проверяем права
+            if (tgId) {
+                checkPermissions(tgId);
+            } else {
+                state.userPermissions = {
+                    view: true,
+                    edit: false,
+                    delete: false,
+                    archive: false,
+                    manageSubtasks: false
+                };
+                updateUI();
+            }
+            
+            renderAll();
+        } catch (error) {
+            console.error("Ошибка при загрузке данных:", error);
         }
-        
-        renderAll();
+    }, (error) => {
+        console.error("Ошибка Firebase:", error);
     });
     
     initEventListeners();
