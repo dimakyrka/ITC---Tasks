@@ -28,6 +28,7 @@ body {
     min-height: 100vh;
 }
 
+/* Заголовки и табы */
 header {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
@@ -70,6 +71,7 @@ h1 {
     display: block;
 }
 
+/* Форма добавления задач */
 .task-form {
     display: flex;
     gap: 0.75rem;
@@ -116,11 +118,7 @@ h1 {
     height: 1.25rem;
 }
 
-.add-btn.small {
-    width: 2.5rem;
-    height: 2.5rem;
-}
-
+/* Списки задач */
 #tasks, #events, #archive {
     display: flex;
     flex-direction: column;
@@ -155,7 +153,6 @@ h1 {
     white-space: normal;
 }
 
-/* Обновленный стиль для прикрепленного имени */
 .task-assigned-to {
     font-size: 0.8rem;
     color: var(--text-light);
@@ -167,7 +164,7 @@ h1 {
 }
 
 .task-assigned-to::before {
-    content: ""; /* Минималистичная стрелка вместо иконки */
+    content: "→";
     font-size: 0.7rem;
     opacity: 0.6;
 }
@@ -201,6 +198,7 @@ h1 {
     height: 1rem;
 }
 
+/* Модальные окна */
 .modal {
     position: fixed;
     top: 0;
@@ -244,6 +242,51 @@ h1 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 1rem;
+}
+
+/* Обновленные стили полей ввода */
+#edit-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    color: #333;
+    transition: all 0.2s;
+    box-shadow: none;
+    outline: none;
+    appearance: none;
+    line-height: 1.5;
+}
+
+#edit-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+#edit-assigned-to {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: all 0.2s;
+}
+
+#edit-assigned-to:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    outline: none;
 }
 
 .modal-actions {
@@ -290,103 +333,24 @@ h1 {
     background: #dc2626;
 }
 
-/* Обновленный стиль для выпадающего списка */
-#edit-assigned-to {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    margin: 10px 0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    background-color: white;
-    color: #333;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
-    transition: border 0.2s;
+/* Подзадачи */
+#subtasks-modal .modal-content {
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
 }
 
-#edit-assigned-to:focus {
-    border-color: #6366f1;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
-}
-
-/* Минималистичная кнопка закрытия в подзадачах */
-#close-subtasks-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-light);
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-    margin-top: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-}
-
-#close-subtasks-btn:hover {
-    color: var(--text);
-}
-
-#close-subtasks-btn::before {
-    content: "×";
-    font-size: 1.2rem;
-    margin-right: 0.3rem;
-    vertical-align: middle;
-}
-
-/* Остальные стили остаются без изменений */
-.empty-state {
-    text-align: center;
-    padding: 3rem 0;
-    color: var(--text-light);
-    display: none;
-}
-
-.empty-state svg {
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-state p {
-    margin-top: 0.5rem;
-}
-
-.empty-state.active {
-    display: block;
-}
-
-.archive-header {
-    margin: 1.5rem 0 0.5rem;
-    font-size: 1rem;
+#subtasks-title {
+    font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-light);
-    padding: 0.5rem 1rem;
-}
-
-#archive .task {
-    opacity: 0.9;
-    background-color: rgba(245, 245, 245, 0.8);
-}
-
-#archive .task-content {
-    color: var(--text-light);
-}
-
-#archive .restore-btn {
-    color: var(--green);
-}
-
-#archive .delete-btn {
-    color: var(--red);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80%;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .subtasks-container {
@@ -452,6 +416,60 @@ h1 {
     color: var(--red);
 }
 
+/* Кнопка закрытия подзадач */
+#close-subtasks-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+#close-subtasks-btn:hover {
+    color: var(--text);
+}
+
+#close-subtasks-btn::before {
+    content: "×";
+    font-size: 1.2rem;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+}
+
+/* Архив */
+.archive-header {
+    margin: 1.5rem 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    padding: 0.5rem 1rem;
+}
+
+#archive .task {
+    opacity: 0.9;
+    background-color: rgba(245, 245, 245, 0.8);
+}
+
+#archive .task-content {
+    color: var(--text-light);
+}
+
+#archive .restore-btn {
+    color: var(--green);
+}
+
+#archive .delete-btn {
+    color: var(--red);
+}
+
+/* Адаптивность */
 @media (max-width: 480px) {
     .modal-actions {
         flex-direction: column;
@@ -483,22 +501,7 @@ h1 {
     .subtasks-form {
         padding: 1rem;
     }
-}
 
-/* Добавляем в конец файла или в раздел для подзадач */
-#subtasks-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    white-space: nowrap; /* Запрещаем перенос строк */
-    overflow: hidden; /* Скрываем выходящий за границы текст */
-    text-overflow: ellipsis; /* Добавляем многоточие */
-    max-width: 80%; /* Ограничиваем ширину */
-    margin: 0 auto; /* Центрируем */
-    padding: 0 1rem; /* Отступы справа/слева */
-}
-
-/* Для мобильных устройств делаем шрифт меньше */
-@media (max-width: 480px) {
     #subtasks-title {
         font-size: 1rem;
         max-width: 70%;
