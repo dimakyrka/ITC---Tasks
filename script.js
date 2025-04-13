@@ -579,7 +579,10 @@ function initEventListeners() {
         if (e.key === 'Enter') addSubtask();
     });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+
+    // Закрытие модалки подзадач
     DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+
 
     // Закрытие модалок
     window.addEventListener('click', (e) => {
