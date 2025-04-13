@@ -70,15 +70,28 @@ const DOM = {
     editAssignedTo: document.getElementById('edit-assigned-to') 
 };
 
-// ========== Инициализация Firebase ==========
 function initializeDataStructure() {
     tasksRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
-            tasksRef.set({
+            // Устанавливаем только если нет данных вообще
+            const initialData = {
                 tasks: [],
                 events: [],
-                archived: []
-            });
+                archived: [],
+                users: {
+                    "647523973": {  // Ваш ID по умолчанию
+                        name: "Димка",
+                        permissions: {
+                            view: true,
+                            edit: true,
+                            delete: true,
+                            archive: true,
+                            manageSubtasks: true
+                        }
+                    }
+                }
+            };
+            tasksRef.set(initialData);
         }
     });
 }
@@ -206,65 +219,72 @@ function renderArchive() {
 
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
-        const taskEl = document.createElement('li');
+    const taskEl = document.createElement('li');
     taskEl.className = 'task';
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
-    taskEl.setAttribute('draggable', 'true');
+    taskEl.setAttribute('draggable', state.userPermissions.edit ? 'true' : 'false');
     taskEl.dataset.index = index;
 
+    // Создаем элементы вручную вместо innerHTML
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'task-content';
+    contentDiv.textContent = item.text;
+    taskEl.appendChild(contentDiv);
 
-    // Добавляем проверку прав для кнопок
-    taskEl.querySelector('.edit-btn').style.display = 
-        state.userPermissions.edit ? 'flex' : 'none';
-    taskEl.querySelector('.delete-btn').style.display = 
-        state.userPermissions.delete ? 'flex' : 'none';
-    
-    // Добавляем иконку и имя ответственного (если есть)
-    const assignedHtml = item.assignedTo 
-        ? `<div class="task-assigned-to">👤 ${item.assignedTo}</div>` 
-        : '';
+    // Добавляем ответственного (если есть)
+    if (item.assignedTo) {
+        const assignedDiv = document.createElement('div');
+        assignedDiv.className = 'task-assigned-to';
+        assignedDiv.textContent = `→ ${item.assignedTo}`;
+        taskEl.appendChild(assignedDiv);
+    }
 
-    taskEl.innerHTML = `
-        <div class="task-content">${item.text}</div>
-        ${assignedHtml}
-        <div class="task-actions">
-            <button class="btn-icon edit-btn" title="Редактировать">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            </button>
-            <button class="btn-icon delete-btn" title="Удалить">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-        </div>
-    `;
-    
+    // Создаем контейнер для кнопок
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'task-actions';
+
+    // Кнопка редактирования
+    if (state.userPermissions.edit) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-icon edit-btn';
+        editBtn.title = 'Редактировать';
+        editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditModal(index, type);
+        });
+        actionsDiv.appendChild(editBtn);
+    }
+
+    // Кнопка удаления
+    if (state.userPermissions.delete) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-icon delete-btn';
+        deleteBtn.title = 'Удалить';
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDeleteModal(index, type);
+        });
+        actionsDiv.appendChild(deleteBtn);
+    }
+
+    taskEl.appendChild(actionsDiv);
+
     // Обработчики событий
-    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+    contentDiv.addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions') && type === 'tasks') {
             openSubtasksModal(index);
         }
     });
-    
-    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEditModal(index, type);
-    });
-    
-    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDeleteModal(index, type);
-    });
-    
-    // Drag and Drop
-    taskEl.addEventListener('dragstart', handleDragStart);
-    taskEl.addEventListener('dragover', handleDragOver);
-    taskEl.addEventListener('drop', handleDrop);
-    taskEl.addEventListener('dragend', handleDragEnd);
+
+    // Drag and Drop (только если есть права на редактирование)
+    if (state.userPermissions.edit) {
+        taskEl.addEventListener('dragstart', handleDragStart);
+        taskEl.addEventListener('dragover', handleDragOver);
+        taskEl.addEventListener('drop', handleDrop);
+        taskEl.addEventListener('dragend', handleDragEnd);
+    }
     
     return taskEl;
 }
@@ -725,22 +745,20 @@ function getTgIdFromInitData() {
 function init() {
     initializeDataStructure();
     
-    // Получаем TG ID из URL (WebApp) или параметров
     const urlParams = new URLSearchParams(window.location.search);
-    const tgId = urlParams.get('tgid') || getTgIdFromInitData() || null;
+    const tgId = urlParams.get('tgid') || getTgIdFromInitData();
     
-    // Загружаем данные и проверяем права
-    tasksRef.on('value', (snapshot) => {
+    // Сначала загружаем данные
+    dbRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
         state.tasks = data.tasks || [];
         state.events = data.events || [];
         state.archived = data.archived || [];
         
-        // Проверяем права пользователя
+        // Затем проверяем права
         if (tgId) {
             checkPermissions(tgId);
         } else {
-            // Гостевой доступ (только просмотр)
             state.userPermissions = {
                 view: true,
                 edit: false,
@@ -755,7 +773,6 @@ function init() {
     });
     
     initEventListeners();
-    DOM.taskForm.style.display = 'none'; // Скрываем до проверки прав
 }
 
 // Запуск приложения
