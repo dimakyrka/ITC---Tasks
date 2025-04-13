@@ -155,6 +155,23 @@ h1 {
     white-space: normal;
 }
 
+/* Обновленный стиль для прикрепленного имени */
+.task-assigned-to {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+    padding-left: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-assigned-to::before {
+    content: "→"; /* Минималистичная стрелка вместо иконки */
+    font-size: 0.7rem;
+    opacity: 0.6;
+}
+
 .task-actions {
     display: flex;
     gap: 0.5rem;
@@ -273,27 +290,58 @@ h1 {
     background: #dc2626;
 }
 
-.color-picker {
-    display: flex;
-    gap: 0.75rem;
-    margin: 1rem 0;
-    justify-content: center;
+/* Обновленный стиль для выпадающего списка */
+#edit-assigned-to {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin: 10px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: border 0.2s;
 }
 
-.color-option {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
+#edit-assigned-to:focus {
+    border-color: #6366f1;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* Минималистичная кнопка закрытия в подзадачах */
+#close-subtasks-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
     cursor: pointer;
-    border: 2px solid transparent;
     transition: all 0.2s;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 }
 
-.color-option.selected {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 2px white, 0 0 0 4px var(--text);
+#close-subtasks-btn:hover {
+    color: var(--text);
 }
 
+#close-subtasks-btn::before {
+    content: "×";
+    font-size: 1.2rem;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+}
+
+/* Остальные стили остаются без изменений */
 .empty-state {
     text-align: center;
     padding: 3rem 0;
@@ -316,7 +364,6 @@ h1 {
     display: block;
 }
 
-/* Стили для архива */
 .archive-header {
     margin: 1.5rem 0 0.5rem;
     font-size: 1rem;
@@ -340,26 +387,6 @@ h1 {
 
 #archive .delete-btn {
     color: var(--red);
-}
-
-.empty-state#empty-archive {
-    display: none;
-}
-
-.empty-state#empty-archive.active {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Стили для подзадач */
-#subtasks-modal .modal-content {
-    max-width: 500px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
 }
 
 .subtasks-container {
@@ -413,69 +440,18 @@ h1 {
     color: var(--text-light);
 }
 
-.close-modal-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
+.delete-subtask-btn {
+    margin-left: auto;
+    width: 1.5rem;
+    height: 1.5rem;
     color: var(--text-light);
-    padding: 0.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
     transition: all 0.2s;
-    margin-left: auto;
 }
 
-/* Стили для кнопки закрытия в подзадачах */
-#close-subtasks-btn {
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-    margin-top: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-left: auto;
-    margin-right: auto;
+.delete-subtask-btn:hover {
+    color: var(--red);
 }
 
-#close-subtasks-btn:hover {
-    color: #333;
-}
-
-#close-subtasks-btn::before {
-    content: "×";
-    font-size: 1.2rem;
-}
-
-.close-modal-btn:hover {
-    background: rgba(0,0,0,0.05);
-    color: var(--text);
-}
-
-.close-modal-btn svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    stroke-width: 2;
-}
-/* Анимации */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.subtask-item {
-    animation: fadeIn 0.3s ease-out forwards;
-}
-
-/* Адаптивные стили */
 @media (max-width: 480px) {
     .modal-actions {
         flex-direction: column;
@@ -507,87 +483,4 @@ h1 {
     .subtasks-form {
         padding: 1rem;
     }
-}
-
-.subtask-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    position: relative;
-}
-
-.delete-subtask-btn {
-    margin-left: auto;
-    width: 1.5rem;
-    height: 1.5rem;
-    color: var(--text-light);
-    transition: all 0.2s;
-}
-
-.delete-subtask-btn:hover {
-    color: var(--red);
-}
-
-.subtask-text {
-    flex: 1;
-    margin: 0 0.5rem;
-    word-break: break-word;
-    padding: 0.5rem 0;
-}
-
-/* Стили для выпадающего списка */
-#edit-assigned-to {
-    width: 100%;
-    padding: 0.75rem;
-    margin-top: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    background-color: var(--card);
-    color: var(--text);
-}
-
-/* Стили для отображения имени под задачей */
-.task-assigned-to {
-    font-size: 0.8rem;
-    color: var(--text-light);
-    margin-top: 0.25rem;
-    padding-left: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-/* Иконка перед именем */
-.task-assigned-to::before {
-    content: "→"; /* Вариант 1: стрелка */
-    /* content: "";  Вариант 2: полностью убираем */
-    font-size: 0.7rem;
-    margin-right: 4px;
-    opacity: 0.6;
-}
-
-/* Стили для select в модалке редактирования */
-#edit-assigned-to {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    margin: 10px 0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    background-color: white;
-    color: #333;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
-    transition: border 0.2s;
-}
-
-#edit-assigned-to:focus {
-    border-color: #6366f1;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
