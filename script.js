@@ -87,30 +87,36 @@ function initializeDataStructure() {
 function checkUserPermissions() {
     const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
     if (!tgUser) {
+        console.error('Telegram user not detected');
         showAccessDenied();
         return;
     }
 
     state.currentUserId = tgUser.id;
-    
-    // Проверяем права пользователя в Firebase
-    database.ref('users/' + tgUser.id).once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-            const userData = snapshot.val();
-            state.userPermissions = {
-                view: true,
-                edit: userData.permissions?.edit || false,
-                delete: userData.permissions?.delete || false,
-                archive: userData.permissions?.archive || false,
-                manageSubtasks: userData.permissions?.manageSubtasks || false
-            };
-            initApp();
-        } else {
+    console.log('Fetching permissions for user ID:', tgUser.id); // Логируем ID
+
+    database.ref('users/' + tgUser.id).once('value')
+        .then((snapshot) => {
+            if (snapshot.exists()) {
+                console.log('User permissions:', snapshot.val()); // Логируем данные
+                const userData = snapshot.val();
+                state.userPermissions = {
+                    view: true,
+                    edit: userData.permissions?.edit || false,
+                    delete: userData.permissions?.delete || false,
+                    archive: userData.permissions?.archive || false,
+                    manageSubtasks: userData.permissions?.manageSubtasks || false
+                };
+                initApp();
+            } else {
+                console.error('User not found in database');
+                showAccessDenied();
+            }
+        })
+        .catch((error) => {
+            console.error('Firebase error:', error); // Логируем ошибки
             showAccessDenied();
-        }
-    }).catch(() => {
-        showAccessDenied();
-    });
+        });
 }
 
 function showAccessDenied() {
