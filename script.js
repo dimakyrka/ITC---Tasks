@@ -319,7 +319,7 @@ function createArchiveItem(item, index) {
 // ========== Функции работы с данными ==========
 function addItem() {
     if (!currentUser.isAdmin) return;
-    
+    console.log("есть");
     const text = DOM.taskInput.value.trim();
     if (!text) return;
 
