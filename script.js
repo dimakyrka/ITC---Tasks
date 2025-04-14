@@ -25,7 +25,9 @@ const state = {
     selectedColor: "#e5e7eb",
     draggedItem: null,
     currentTaskWithSubtasks: null,
-    currentEditType: null
+    currentEditType: null,
+    currentUser: null,
+    isAdmin: false
 };
 
 // ========== DOM элементы ==========
@@ -75,7 +77,47 @@ function initializeDataStructure() {
     });
 }
 
+// Добавляем после инициализации Firebase
+function checkUserAuth(userId) {
+    return new Promise((resolve) => {
+        database.ref('users/' + userId).once('value').then((snapshot) => {
+            const userData = snapshot.val();
+            if (userData) {
+                state.currentUser = userId;
+                state.isAdmin = userData.admin === true;
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        }).catch(() => resolve(false));
+    });
+}
+
 // ========== Основные функции рендеринга ==========
+
+function updateUIForPermissions() {
+    const canEdit = state.isAdmin;
+    
+    // Показываем/скрываем элементы редактирования
+    DOM.addBtn.style.display = canEdit ? 'flex' : 'none';
+    DOM.taskInput.style.display = canEdit ? 'block' : 'none';
+    
+    // Скрываем кнопки действий для обычных пользователей
+    document.querySelectorAll('.edit-btn, .delete-btn, .add-btn, .restore-btn').forEach(btn => {
+        btn.style.display = canEdit ? 'flex' : 'none';
+    });
+    
+    // Делаем поля только для чтения
+    DOM.taskInput.readOnly = !canEdit;
+    DOM.editInput.readOnly = !canEdit;
+    DOM.subtaskInput.readOnly = !canEdit;
+    
+    // Если это архив, скрываем форму добавления полностью
+    if (state.currentTab === 'archive') {
+        DOM.taskForm.style.display = 'none';
+    }
+}
+
 function renderAll() {
     renderTasks();
     renderEvents();
@@ -611,8 +653,24 @@ function initEventListeners() {
 }
 
 // ========== Инициализация приложения ==========
-function init() {
+// Модифицируем функцию init()
+async function init() {
     initializeDataStructure();
+    
+    // Получаем userId из URL (будет передаваться из Telegram)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    
+    if (userId) {
+        const isAuthenticated = await checkUserAuth(userId);
+        if (!isAuthenticated) {
+            alert('Доступ запрещен. Пожалуйста, войдите через бота.');
+            return;
+        }
+    } else {
+        alert('Пожалуйста, используйте бота для доступа к приложению.');
+        return;
+    }
     
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
@@ -621,6 +679,7 @@ function init() {
         state.events = data.events || [];
         state.archived = data.archived || [];
         renderAll();
+        updateUIForPermissions(); // Обновляем UI в соответствии с правами
     });
     
     initEventListeners();
