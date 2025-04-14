@@ -10,7 +10,6 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-
 // ========== Инициализация приложения ==========
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
@@ -706,3 +705,43 @@ function initEventListeners() {
 
     // Закрытие модалки подзадач
     DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+
+
+    // Закрытие модалок
+    window.addEventListener('click', (e) => {
+        if (e.target === DOM.subtasksModal) closeSubtasksModal();
+    });
+
+    document.addEventListener('keydown', handleEscKey);
+}
+
+// ========== Инициализация приложения ==========
+function init() {
+    initializeDataStructure();
+
+    // Получите экземпляр веб-приложения Telegram
+    const webApp = window.Telegram.WebApp;
+    const userId = webApp.initDataUnsafe?.user?.id;
+    // Проверяем права пользователя
+    checkUserRights().then(() => {
+        // Загрузка данных из Firebase
+        tasksRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            state.tasks = data.tasks || [];
+            state.events = data.events || [];
+            state.archived = data.archived || [];
+            renderAll();
+        });
+
+        initEventListeners();
+         // Скрываем или показываем taskForm в зависимости от прав и вкладки
+        if (hasRights && state.currentTab !== 'archive') {
+            DOM.taskForm.style.display = 'flex';
+        } else {
+            DOM.taskForm.style.display = 'none';
+        }
+    });
+}
+
+// Запуск приложения
+init();
