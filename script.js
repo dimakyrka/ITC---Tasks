@@ -83,7 +83,7 @@ async function checkUserPermissions(userId) {
             } else {
                 // Если пользователя нет в базе, добавляем как обычного
                 userRef.set({
-                    admin: false,
+                    admin: true,
                     name: 'Новый пользователь'
                 });
                 currentUser.id = userId;
