@@ -28,13 +28,6 @@ const state = {
     currentEditType: null
 };
 
-// Текущий пользователь
-const currentUser = {
-    id: null,
-    isAdmin: false,
-    name: 'Гость'
-};
-
 // ========== DOM элементы ==========
 const DOM = {
     taskInput: document.getElementById('task-input'),
@@ -66,70 +59,8 @@ const DOM = {
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
     closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form'),
-    editAssignedTo: document.getElementById('edit-assigned-to')
+    editAssignedTo: document.getElementById('edit-assigned-to') 
 };
-
-// ========== Проверка прав пользователя ==========
-async function checkUserPermissions(userId) {
-    return new Promise((resolve) => {
-        const userRef = database.ref(`users/${userId}`);
-        userRef.once('value').then((snapshot) => {
-            const userData = snapshot.val();
-            if (userData) {
-                currentUser.id = userId;
-                currentUser.isAdmin = userData.admin === true;
-                currentUser.name = userData.name || 'Пользователь';
-                resolve(true);
-            } else {
-                // Если пользователя нет в базе, добавляем как обычного
-                userRef.set({
-                    admin: true,
-                    name: 'Новый пользователь'
-                });
-                currentUser.id = userId;
-                currentUser.isAdmin = false;
-                currentUser.name = 'Новый пользователь';
-                resolve(true);
-            }
-        }).catch(() => resolve(false));
-    });
-}
-
-// ========== Настройка UI по правам ==========
-function setupUIForUserRole() {
-    if (!currentUser.id) {
-        // Гостевой режим (только просмотр)
-        DOM.taskForm.style.display = 'none';
-        document.querySelectorAll('.task-actions').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.7';
-        });
-        
-        const notice = document.createElement('div');
-        notice.className = 'view-mode-notice';
-        notice.textContent = '🔒 Войдите через Telegram для доступа к полному функционалу';
-        document.body.insertBefore(notice, document.body.firstChild);
-        return;
-    }
-
-    if (!currentUser.isAdmin) {
-        // Режим обычного пользователя
-        DOM.taskForm.style.display = 'none';
-        document.querySelectorAll('.task-actions').forEach(el => el.style.display = 'none');
-        
-        const notice = document.createElement('div');
-        notice.className = 'view-mode-notice';
-        notice.innerHTML = `🔒 Вы вошли как <strong>${currentUser.name}</strong> (режим просмотра)`;
-        document.body.insertBefore(notice, document.body.firstChild);
-    } else {
-        // Режим администратора
-        const notice = document.createElement('div');
-        notice.className = 'view-mode-notice admin';
-        notice.innerHTML = `👑 Вы вошли как <strong>${currentUser.name}</strong> (режим администратора)`;
-        document.body.insertBefore(notice, document.body.firstChild);
-    }
-}
 
 // ========== Инициализация Firebase ==========
 function initializeDataStructure() {
@@ -138,46 +69,26 @@ function initializeDataStructure() {
             tasksRef.set({
                 tasks: [],
                 events: [],
-                archived: [],
-                users: {}
+                archived: []
             });
         }
     });
 }
 
 // ========== Основные функции рендеринга ==========
-// ========== Основные функции рендеринга ==========
 function renderAll() {
-    console.log('[Render] Обновление интерфейса', {
-        tasks: state.tasks,
-        events: state.events,
-        archived: state.archived
-    });
-    
     renderTasks();
     renderEvents();
     renderArchive();
     updateEmptyStates();
 }
 
-// ========== Исправленная функция renderTasks ==========
 function renderTasks() {
-    console.log('[Render] Отрисовка задач:', state.tasks);
     DOM.tasksList.innerHTML = '';
-    
-    // Добавляем проверку типа
-    if (!Array.isArray(state.tasks)) {
-        console.error('state.tasks не является массивом:', state.tasks);
-        return;
-    }
-    
     state.tasks.forEach((task, index) => {
-        const element = createTaskElement(task, index, 'tasks');
-        DOM.tasksList.appendChild(element);
+        DOM.tasksList.appendChild(createTaskElement(task, index, 'tasks'));
     });
 }
-
-
 
 function renderEvents() {
     DOM.eventsList.innerHTML = '';
@@ -216,16 +127,12 @@ function renderArchive() {
 
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
-    const taskEl = document.createElement('li');
-    taskEl.dataset.firebaseKey = task.firebaseKey;
-    taskEl.className = 'task' + (!currentUser.isAdmin ? ' view-mode' : '');
+        const taskEl = document.createElement('li');
+    taskEl.className = 'task';
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
+    taskEl.setAttribute('draggable', 'true');
+    taskEl.dataset.index = index;
     
-    if (currentUser.isAdmin) {
-        taskEl.setAttribute('draggable', 'true');
-        taskEl.dataset.index = index;
-    }
-
     // Добавляем иконку и имя ответственного (если есть)
     const assignedHtml = item.assignedTo 
         ? `<div class="task-assigned-to">👤 ${item.assignedTo}</div>` 
@@ -234,7 +141,6 @@ function createTaskElement(item, index, type) {
     taskEl.innerHTML = `
         <div class="task-content">${item.text}</div>
         ${assignedHtml}
-        ${currentUser.isAdmin ? `
         <div class="task-actions">
             <button class="btn-icon edit-btn" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -249,43 +155,30 @@ function createTaskElement(item, index, type) {
                 </svg>
             </button>
         </div>
-        ` : ''}
     `;
     
     // Обработчики событий
-    const contentElement = taskEl.querySelector('.task-content');
-    if (contentElement) {
-        contentElement.addEventListener('click', (e) => {
-            if (!e.target.closest('.task-actions') && type === 'tasks') {
-                openSubtasksModal(index);
-            }
-        });
-    }
+    taskEl.querySelector('.task-content').addEventListener('click', (e) => {
+        if (!e.target.closest('.task-actions') && type === 'tasks') {
+            openSubtasksModal(index);
+        }
+    });
     
-    if (currentUser.isAdmin) {
-        const editBtn = taskEl.querySelector('.edit-btn');
-        const deleteBtn = taskEl.querySelector('.delete-btn');
-        
-        if (editBtn) {
-            editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openEditModal(index, type);
-            });
-        }
-        
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openDeleteModal(index, type);
-            });
-        }
-        
-        // Drag and Drop только для админов
-        taskEl.addEventListener('dragstart', handleDragStart);
-        taskEl.addEventListener('dragover', handleDragOver);
-        taskEl.addEventListener('drop', handleDrop);
-        taskEl.addEventListener('dragend', handleDragEnd);
-    }
+    taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(index, type);
+    });
+    
+    taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, type);
+    });
+    
+    // Drag and Drop
+    taskEl.addEventListener('dragstart', handleDragStart);
+    taskEl.addEventListener('dragover', handleDragOver);
+    taskEl.addEventListener('drop', handleDrop);
+    taskEl.addEventListener('dragend', handleDragEnd);
     
     return taskEl;
 }
@@ -297,7 +190,6 @@ function createArchiveItem(item, index) {
     
     archivedEl.innerHTML = `
         <div class="task-content">${item.text}</div>
-        ${currentUser.isAdmin ? `
         <div class="task-actions">
             <button class="btn-icon restore-btn" title="Восстановить">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -312,82 +204,50 @@ function createArchiveItem(item, index) {
                 </svg>
             </button>
         </div>
-        ` : ''}
     `;
     
-    if (currentUser.isAdmin) {
-        const restoreBtn = archivedEl.querySelector('.restore-btn');
-        const deleteBtn = archivedEl.querySelector('.delete-btn');
-        
-        if (restoreBtn) {
-            restoreBtn.addEventListener('click', () => {
-                restoreFromArchive(index);
-            });
-        }
-        
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openDeleteModal(index, 'archived');
-            });
-        }
-    }
+    archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
+        restoreFromArchive(index);
+    });
+    
+    archivedEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(index, 'archived');
+    });
     
     return archivedEl;
 }
 
 // ========== Функции работы с данными ==========
 function addItem() {
-    console.log('[Debug] addItem вызван');
+    const text = DOM.taskInput.value.trim();
+    if (!text) return;
+
+    const newItem = {
+        text: text,
+        color: "#e5e7eb",
+        createdAt: Date.now(),
+        subtasks: []
+    };
     
-    try {
-        // Проверка прав доступа
-        if (!currentUser.isAdmin) {
-            throw new Error('Доступ запрещен: требуется роль администратора');
+    tasksRef.transaction((currentData) => {
+        currentData = currentData || {};
+        if (state.currentTab === 'tasks') {
+            currentData.tasks = currentData.tasks || [];
+            currentData.tasks.unshift(newItem);
+        } else {
+            currentData.events = currentData.events || [];
+            currentData.events.unshift(newItem);
         }
-
-        // Проверка ввода
-        const text = DOM.taskInput.value.trim();
-        if (!text) {
-            throw new Error('Нельзя добавить пустую задачу');
-        }
-
-        console.log('[Debug] Пытаемся добавить задачу:', text);
-
-        // Создаем объект задачи
-        const newItem = {
-            text: text,
-            color: state.selectedColor,
-            createdAt: Date.now(),
-            subtasks: [],
-            createdBy: currentUser.id
-        };
-
-        // Отправляем в Firebase
-        const target = state.currentTab === 'tasks' ? 'tasks' : 'events';
-        const newRef = database.ref(`tasks/${target}`).push();
-        
-        newRef.set(newItem)
-            .then(() => {
-                console.log('[Firebase] Задача успешно добавлена');
-                DOM.taskInput.value = '';
-            })
-            .catch(error => {
-                console.error('[Firebase] Ошибка:', error);
-                alert('Ошибка сохранения: ' + error.message);
-            });
-
-    } catch (error) {
-        console.error('[Error] addItem:', error);
-        alert(error.message);
-    }
+        return currentData;
+    }).then(() => {
+        DOM.taskInput.value = '';
+    }).catch(console.error);
 }
 
 function saveEdit() {
-    if (!currentUser.isAdmin) return;
-    
     const newText = DOM.editInput.value.trim();
-    const assignedTo = DOM.editAssignedTo.value.trim();
+    const assignedTo = DOM.editAssignedTo.value.trim(); // Получаем выбранное имя из select
     
     if (!newText || state.currentEditIndex === null) return;
 
@@ -395,9 +255,7 @@ function saveEdit() {
         const item = currentData[state.currentEditType][state.currentEditIndex];
         item.text = newText;
         item.color = state.selectedColor;
-        item.assignedTo = assignedTo;
-        item.updatedBy = currentUser.id;
-        item.updatedAt = Date.now();
+        item.assignedTo = assignedTo; // Сохраняем имя (пустая строка, если "Не назначено")
         return currentData;
     }).then(() => {
         DOM.editModal.classList.remove('active');
@@ -405,7 +263,7 @@ function saveEdit() {
 }
 
 function moveToArchive() {
-    if (!currentUser.isAdmin || state.currentEditIndex === null || !state.currentEditType) return;
+    if (state.currentEditIndex === null || !state.currentEditType) return;
 
     tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
@@ -413,8 +271,7 @@ function moveToArchive() {
         const itemToArchive = { 
             ...currentData[state.currentEditType][state.currentEditIndex],
             archivedAt: Date.now(),
-            originalType: state.currentEditType,
-            archivedBy: currentUser.id
+            originalType: state.currentEditType
         };
 
         currentData[state.currentEditType].splice(state.currentEditIndex, 1);
@@ -430,8 +287,6 @@ function moveToArchive() {
 }
 
 function restoreFromArchive(index) {
-    if (!currentUser.isAdmin) return;
-
     tasksRef.transaction((currentData) => {
         if (!currentData?.archived || index >= currentData.archived.length) {
             return currentData;
@@ -449,7 +304,7 @@ function restoreFromArchive(index) {
 }
 
 function deleteItem() {
-    if (!currentUser.isAdmin || state.currentDeleteIndex === null) return;
+    if (state.currentDeleteIndex === null) return;
 
     tasksRef.transaction((currentData) => {
         if (state.currentEditType === 'tasks') {
@@ -485,82 +340,63 @@ function openSubtasksModal(index) {
         });
     }
     
-    // Настройка UI в зависимости от прав
-    if (!currentUser.id) {
-        DOM.subtasksForm.style.display = 'none';
-    } else if (!currentUser.isAdmin) {
-        DOM.subtaskInput.placeholder = 'Только админ может добавлять подзадачи';
-        DOM.subtaskInput.disabled = true;
-        DOM.addSubtaskBtn.disabled = true;
-    }
-    
     DOM.subtasksModal.classList.add('active');
+    DOM.subtaskInput.focus();
     document.addEventListener('keydown', handleEscKey);
 }
 
 function addSubtaskToDOM(subtask, index) {
     const subtaskEl = document.createElement('li');
     subtaskEl.className = 'subtask-item';
-    
     subtaskEl.innerHTML = `
         <input type="checkbox" class="subtask-checkbox" 
                ${subtask.completed ? 'checked' : ''}
-               id="subtask-${index}"
-               ${!currentUser.id ? 'disabled' : ''}>
+               id="subtask-${index}">
         <label for="subtask-${index}" class="subtask-text ${subtask.completed ? 'completed' : ''}">
             ${subtask.text}
         </label>
-        ${currentUser.isAdmin ? `
         <button class="btn-icon delete-subtask-btn" title="Удалить подзадачу">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M3 6h18"></path>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
         </button>
-        ` : ''}
     `;
     
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
-    if (checkbox) {
-        checkbox.addEventListener('change', function() {
-            const isChecked = this.checked;
-            subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
-            
-            tasksRef.transaction((currentData) => {
-                if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
-                    currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
-                    currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completedBy = currentUser.id;
-                    currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completedAt = Date.now();
-                }
-                return currentData;
-            }).catch(error => {
-                console.error('Error updating subtask:', error);
-                checkbox.checked = !isChecked;
-                subtaskEl.querySelector('label').classList.toggle('completed');
-            });
+    checkbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
+        
+        tasksRef.transaction((currentData) => {
+            if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
+                currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
+            }
+            return currentData;
+        }).catch(error => {
+            console.error('Error updating subtask:', error);
+            checkbox.checked = !isChecked;
+            subtaskEl.querySelector('label').classList.toggle('completed');
         });
-    }
+    });
     
-    // Добавляем обработчик удаления подзадачи (только для админов)
+    // Добавляем обработчик удаления подзадачи
     const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-            deleteSubtask(index);
-        });
-    }
+    deleteBtn.addEventListener('click', () => {
+        deleteSubtask(index);
+    });
     
     DOM.subtasksList.appendChild(subtaskEl);
 }
 
 function deleteSubtask(index) {
-    if (!currentUser.isAdmin) return;
-
     tasksRef.transaction((currentData) => {
         if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks) {
             currentData.tasks[state.currentTaskWithSubtasks].subtasks.splice(index, 1);
         }
         return currentData;
     }).then(() => {
+        // После успешного удаления в Firebase, перерисовываем подзадачи
         const task = state.tasks[state.currentTaskWithSubtasks];
         DOM.subtasksList.innerHTML = '';
         if (task.subtasks && task.subtasks.length > 0) {
@@ -574,20 +410,13 @@ function deleteSubtask(index) {
 }
 
 function addSubtask() {
-    if (!currentUser.id) return;
-    if (!currentUser.isAdmin) {
-        alert('Только администраторы могут добавлять подзадачи');
-        return;
-    }
-
     const text = DOM.subtaskInput.value.trim();
     if (!text || state.currentTaskWithSubtasks === null) return;
 
     const newSubtask = {
         text: text,
         completed: false,
-        createdAt: Date.now(),
-        createdBy: currentUser.id
+        createdAt: Date.now()
     };
 
     // Оптимистичное обновление UI
@@ -620,23 +449,17 @@ function closeSubtasksModal() {
 
 // ========== Drag and Drop ==========
 function handleDragStart(e) {
-    if (!currentUser.isAdmin) return;
-    
     state.draggedItem = this;
     e.dataTransfer.effectAllowed = 'move';
     setTimeout(() => this.classList.add('dragging'), 0);
 }
 
 function handleDragOver(e) {
-    if (!currentUser.isAdmin) return;
-    
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 }
 
 function handleDrop(e) {
-    if (!currentUser.isAdmin) return;
-    
     e.preventDefault();
     if (state.draggedItem !== this) {
         const fromIndex = parseInt(state.draggedItem.dataset.index);
@@ -650,8 +473,6 @@ function handleDragEnd() {
 }
 
 function swapItems(fromIndex, toIndex) {
-    if (!currentUser.isAdmin) return;
-
     tasksRef.transaction((currentData) => {
         if (state.currentTab === 'tasks') {
             const temp = currentData.tasks[fromIndex];
@@ -676,13 +497,16 @@ function updateEmptyStates() {
     DOM.emptyStates.events.classList.toggle('active', eventsEmpty);
     DOM.emptyStates.archive.classList.toggle('active', archiveEmpty);
     
-    if (!tasksEmpty) DOM.emptyStates.tasks.style.display = 'none';
-    if (!eventsEmpty) DOM.emptyStates.events.style.display = 'none';
+    // Добавьте эту проверку
+    if (!tasksEmpty) {
+        DOM.emptyStates.tasks.style.display = 'none';
+    }
+    if (!eventsEmpty) {
+        DOM.emptyStates.events.style.display = 'none';
+    }
 }
 
 function openEditModal(index, type) {
-    if (!currentUser.isAdmin) return;
-    
     state.currentEditIndex = index;
     state.currentEditType = type;
     const item = type === 'tasks' ? state.tasks[index] : 
@@ -690,7 +514,7 @@ function openEditModal(index, type) {
                  state.archived[index];
     
     DOM.editInput.value = item.text;
-    DOM.editAssignedTo.value = item.assignedTo || '';
+    DOM.editAssignedTo.value = item.assignedTo || ''; // Автоматически выбираем текущее имя в select
     state.selectedColor = item.color || '#e5e7eb';
     
     updateColorSelection();
@@ -699,8 +523,6 @@ function openEditModal(index, type) {
 }
 
 function openDeleteModal(index, type) {
-    if (!currentUser.isAdmin) return;
-    
     state.currentDeleteIndex = index;
     state.currentEditType = type;
     DOM.deleteModal.classList.add('active');
@@ -729,27 +551,23 @@ function initEventListeners() {
     // Вкладки
     DOM.tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            if (!currentUser.id && btn.dataset.tab !== 'archive') return;
-            
             DOM.tabBtns.forEach(b => b.classList.remove('active'));
             DOM.tabContents.forEach(c => c.classList.remove('active'));
             
             btn.classList.add('active');
             state.currentTab = btn.dataset.tab;
             document.getElementById(`${state.currentTab}-tab`).classList.add('active');
-            DOM.taskForm.style.display = (state.currentTab === 'archive' || !currentUser.isAdmin) ? 'none' : 'flex';
+            DOM.taskForm.style.display = state.currentTab === 'archive' ? 'none' : 'flex';
         });
     });
     
-    // Добавление задач (только для админов)
-    if (currentUser.isAdmin) {
-        DOM.addBtn.addEventListener('click', addItem);
-        DOM.taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addItem();
-        });
-    }
+    // Добавление задач
+    DOM.addBtn.addEventListener('click', addItem);
+    DOM.taskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addItem();
+    });
     
-    // Редактирование (только для админов)
+    // Редактирование
     DOM.saveEditBtn.addEventListener('click', saveEdit);
     DOM.editInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') saveEdit();
@@ -767,81 +585,48 @@ function initEventListeners() {
         });
     });
     
-    // Удаление (только для админов)
+    // Удаление
     DOM.confirmDeleteBtn.addEventListener('click', deleteItem);
     DOM.cancelDeleteBtn.addEventListener('click', () => {
         DOM.deleteModal.classList.remove('active');
     });
     
     // Подзадачи
-    if (currentUser.id) {
-        DOM.addSubtaskBtn.addEventListener('click', addSubtask);
-        DOM.subtaskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addSubtask();
-        });
-    }
-    
+    DOM.addSubtaskBtn.addEventListener('click', addSubtask);
+    DOM.subtaskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addSubtask();
+    });
     DOM.closeSubtasksTopBtn.addEventListener('click', closeSubtasksModal);
+
+    // Закрытие модалки подзадач
     DOM.closeSubtasksBtn.addEventListener('click', closeSubtasksModal);
+
 
     // Закрытие модалок
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
-        if (e.target === DOM.editModal) DOM.editModal.classList.remove('active');
-        if (e.target === DOM.deleteModal) DOM.deleteModal.classList.remove('active');
     });
     
     document.addEventListener('keydown', handleEscKey);
 }
 
-// ========== Обновленная функция initFirebaseListeners ==========
-function initFirebaseListeners() {
-    console.log('[Firebase] Инициализация слушателей');
-    
-    tasksRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        console.log('[Firebase] Получены новые данные:', data);
-        
-        // Преобразуем объекты в массивы
-        state.tasks = data.tasks ? Object.values(data.tasks) : [];
-        state.events = data.events ? Object.values(data.events) : [];
-        state.archived = data.archived ? Object.values(data.archived) : [];
-        
-        // Добавляем ключи Firebase к задачам
-        if (data.tasks) {
-            state.tasks = Object.keys(data.tasks).map(key => ({
-                ...data.tasks[key],
-                firebaseKey: key
-            }));
-        }
-
-        console.log('[State] Обновленное состояние:', state);
-        requestAnimationFrame(renderAll);
-    });
-}
-
-/// ========== Модифицированная функция init() ==========
+// ========== Инициализация приложения ==========
 function init() {
     initializeDataStructure();
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user_id');
-
-    if (userId) {
-        checkUserPermissions(userId).then(() => {
-            setupUIForUserRole();
-            initFirebaseListeners(); // Добавляем слушателей после авторизации
-        });
-    } else {
-        setupUIForUserRole();
-        initFirebaseListeners(); // Слушатели для гостей
-    }
+    
+    // Загрузка данных из Firebase
+    tasksRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        state.tasks = data.tasks || [];
+        state.events = data.events || [];
+        state.archived = data.archived || [];
+        renderAll();
+    });
     
     initEventListeners();
-    console.log('[Init] Инициализация завершена');
+    DOM.taskForm.style.display = 'flex';
 }
 
-// Запуск приложения после полной загрузки DOM
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Init] DOM полностью загружен');
-    init();
-});
+// Запуск приложения
+init();
+
