@@ -1,4 +1,13 @@
-// Firebase Config
+// Получаем токен из URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+if (!token) {
+    alert("Ошибка: токен не найден. Откройте приложение через бота!");
+    throw new Error("Token required");
+}
+
+// Конфиг Firebase (без apiKey!)
 const firebaseConfig = {
     apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
     authDomain: "itc-tasks.firebaseapp.com",
@@ -9,10 +18,17 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-// ========== Инициализация приложения ==========
 firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const tasksRef = database.ref('tasks');
+
+firebase.auth().signInWithCustomToken(token)
+    .then(() => {
+        console.log("Успешный вход по токену");
+        loadTasks();  // Загружаем задачи
+    })
+    .catch((error) => {
+        console.error("Ошибка входа:", error);
+        alert("Ошибка авторизации. Обновите страницу или перезапустите бота.");
+    });
 
 // ========== Состояние приложения ==========
 const state = {
