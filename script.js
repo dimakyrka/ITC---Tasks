@@ -1,3 +1,4 @@
+
 // Получаем токен из URL
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
@@ -7,9 +8,9 @@ if (!token) {
     throw new Error("Token required");
 }
 
-// Конфиг Firebase (ДОБАВЬТЕ apiKey - он обязателен!)
+// Конфиг Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As", // Ваш ключ из Firebase Console
+    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As", // ОБЯЗАТЕЛЬНО ДОБАВЬТЕ СВОЙ КЛЮЧ API
     authDomain: "itc-tasks.firebaseapp.com",
     databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
     projectId: "itc-tasks",
@@ -18,11 +19,16 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-// Инициализация Firebase (без .then!)
+let tasksRef; // Объявляем tasksRef здесь, чтобы быть в области видимости
+
+// Инициализация Firebase и refs
 try {
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     console.log("Firebase инициализирован");
-    
+
+    const db = firebase.database();
+    tasksRef = db.ref('tasksData');
+
     // Вход по токену
     firebase.auth().signInWithCustomToken(token)
         .then(() => {
@@ -653,4 +659,3 @@ function init() {
 
 // Запуск приложения
 init();
-
