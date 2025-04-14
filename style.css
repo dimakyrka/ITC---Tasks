@@ -531,7 +531,7 @@ h1 {
     max-width: 300px;
     margin: 0 auto;
 }
-
+/**/
 .empty-state h3::before {
     content: "✎";
     display: block;
