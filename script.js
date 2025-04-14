@@ -1,4 +1,3 @@
-
 // Получаем токен из URL
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
@@ -8,8 +7,9 @@ if (!token) {
     throw new Error("Token required");
 }
 
-// Конфиг Firebase (без apiKey!)
+// Конфиг Firebase (ДОБАВЬТЕ apiKey - он обязателен!)
 const firebaseConfig = {
+    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As", // Ваш ключ из Firebase Console
     authDomain: "itc-tasks.firebaseapp.com",
     databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
     projectId: "itc-tasks",
@@ -18,21 +18,25 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-firebase.initializeApp(firebaseConfig).then(() => {
-    // Firebase инициализирован, теперь можно использовать firebase.auth()
+// Инициализация Firebase (без .then!)
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase инициализирован");
+    
+    // Вход по токену
     firebase.auth().signInWithCustomToken(token)
         .then(() => {
             console.log("Успешный вход по токену");
-            loadTasks();  // Загружаем задачи
+            loadTasks();
         })
         .catch((error) => {
             console.error("Ошибка входа:", error);
-            alert("Ошибка авторизации. Обновите страницу или перезапустите бота.");
+            alert("Ошибка авторизации. Проверьте токен или перезапустите бота.");
         });
-}).catch((error) => {
+} catch (error) {
     console.error("Ошибка инициализации Firebase:", error);
-    alert("Ошибка инициализации Firebase. Обновите страницу или перезапустите бота.");
-});
+    alert("Критическая ошибка Firebase. Обновите страницу.");
+}
 
 // ========== Состояние приложения ==========
 const state = {
