@@ -318,52 +318,49 @@ function createArchiveItem(item, index) {
 
 // ========== Функции работы с данными ==========
 function addItem() {
-    console.log('[Debug] Вызов addItem', {
-        isAdmin: currentUser.isAdmin,
-        currentTab: state.currentTab,
-        inputValue: DOM.taskInput.value
-    });
-
-    if (!currentUser.isAdmin) {
-        console.error('Доступ запрещен: пользователь не админ');
-        return;
-    }
-
-    const text = DOM.taskInput.value.trim();
-    if (!text) {
-        console.warn('Пустой текст задачи');
-        return;
-    }
-
-    console.log('Создание новой задачи:', text);
+    console.log('[Debug] addItem вызван');
     
-    const newItem = {
-        text: text,
-        color: "#e5e7eb",
-        createdAt: Date.now(),
-        subtasks: [],
-        createdBy: currentUser.id
-    };
+    try {
+        // Проверка прав доступа
+        if (!currentUser.isAdmin) {
+            throw new Error('Доступ запрещен: требуется роль администратора');
+        }
 
-    console.log('Начало транзакции...');
-    
-    tasksRef.transaction((currentData) => {
-        console.log('Транзакция начата', currentData);
-        
-        currentData = currentData || { tasks: [], events: [], archived: [] };
+        // Проверка ввода
+        const text = DOM.taskInput.value.trim();
+        if (!text) {
+            throw new Error('Нельзя добавить пустую задачу');
+        }
+
+        console.log('[Debug] Пытаемся добавить задачу:', text);
+
+        // Создаем объект задачи
+        const newItem = {
+            text: text,
+            color: state.selectedColor,
+            createdAt: Date.now(),
+            subtasks: [],
+            createdBy: currentUser.id
+        };
+
+        // Отправляем в Firebase
         const target = state.currentTab === 'tasks' ? 'tasks' : 'events';
-        currentData[target] = currentData[target] || [];
-        currentData[target].unshift(newItem);
+        const newRef = database.ref(`tasks/${target}`).push();
         
-        console.log('Новые данные для записи:', currentData);
-        return currentData;
-    }).then(() => {
-        console.log('Транзакция успешно завершена');
-        DOM.taskInput.value = '';
-    }).catch((error) => {
-        console.error('Ошибка транзакции:', error);
-        alert('Ошибка сохранения: ' + error.message);
-    });
+        newRef.set(newItem)
+            .then(() => {
+                console.log('[Firebase] Задача успешно добавлена');
+                DOM.taskInput.value = '';
+            })
+            .catch(error => {
+                console.error('[Firebase] Ошибка:', error);
+                alert('Ошибка сохранения: ' + error.message);
+            });
+
+    } catch (error) {
+        console.error('[Error] addItem:', error);
+        alert(error.message);
+    }
 }
 
 function saveEdit() {
@@ -779,47 +776,36 @@ function initEventListeners() {
 
 // ========== Инициализация приложения ==========
 function init() {
-    console.log('Инициализация приложения. Текущий пользователь:', currentUser);
-    initializeDataStructure();
+    console.log('[Init] Начало инициализации');
     
-    // Получаем ID пользователя из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user_id');
-    
-    if (userId) {
-        console.log('Получен user_id из URL:', userId);
-        checkUserPermissions(userId).then(() => {
-            console.log('Проверка прав завершена:', currentUser);
+    try {
+        initializeDataStructure();
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+
+        if (userId) {
+            console.log('[Init] User ID из URL:', userId);
+            checkUserPermissions(userId)
+                .then(() => {
+                    console.log('[Auth] Пользователь:', currentUser);
+                    setupUIForUserRole();
+                    initEventListeners(); // Важно: инициализация обработчиков после аутентификации
+                })
+                .catch(error => {
+                    console.error('[Auth] Ошибка:', error);
+                });
+        } else {
+            console.log('[Init] Гостевой режим');
             setupUIForUserRole();
-            
-            // Загрузка данных из Firebase
-            tasksRef.on('value', (snapshot) => {
-                const data = snapshot.val() || {};
-                state.tasks = data.tasks || [];
-                state.events = data.events || [];
-                state.archived = data.archived || [];
-                renderAll();
-            });
-        });
-    } else {
-        // Гостевой режим - только просмотр
-        setupUIForUserRole();
-        tasksRef.on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            state.tasks = data.tasks || [];
-            state.events = data.events || [];
-            state.archived = data.archived || [];
-            renderAll();
-        });
+            initEventListeners(); // Инициализация обработчиков для гостей
+        }
+    } catch (error) {
+        console.error('[Init] Критическая ошибка:', error);
     }
-    
-    initEventListeners();
-    // В функции init() после подключения слушателя
-    tasksRef.on('value', (snapshot) => {
-        console.log('[Debug] Данные получены из Firebase:', snapshot.val());
-    });
-    DOM.taskForm.style.display = currentUser.isAdmin ? 'flex' : 'none';
 }
 
-// Запуск приложения
-init();
+// Запуск приложения после полной загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Init] DOM полностью загружен');
+    init();
+});
