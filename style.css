@@ -507,3 +507,35 @@ h1 {
         max-width: 70%;
     }
 }
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 1.5rem;
+    border-radius: 0.75rem;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+}
+
+.empty-state h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text);
+    margin: 1rem 0 0.5rem;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.5;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.empty-state h3::before {
+    content: "✎";
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
