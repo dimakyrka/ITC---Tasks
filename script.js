@@ -88,7 +88,7 @@ function checkUserPermissions(userId) {
 
 function updateUIForPermissions() {
     if (!state.isAdmin) {
-        DOM.restrictedOverlay.style.display = 'flex';
+        //DOM.restrictedOverlay.style.display = 'flex';
         DOM.taskForm.style.display = 'none';
         
         // Скрываем кнопки действий
@@ -712,7 +712,7 @@ function init() {
         initEventListeners();
     }).catch(error => {
         console.error('Error checking user permissions:', error);
-        DOM.restrictedOverlay.style.display = 'flex';
+       // DOM.restrictedOverlay.style.display = 'flex';
         DOM.restrictedOverlay.innerHTML = '<div>Ошибка проверки прав доступа</div>';
     });
 }
