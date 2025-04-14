@@ -318,11 +318,25 @@ function createArchiveItem(item, index) {
 
 // ========== Функции работы с данными ==========
 function addItem() {
-    if (!currentUser.isAdmin) return;
-    console.log("есть");
-    const text = DOM.taskInput.value.trim();
-    if (!text) return;
+    console.log('[Debug] Вызов addItem', {
+        isAdmin: currentUser.isAdmin,
+        currentTab: state.currentTab,
+        inputValue: DOM.taskInput.value
+    });
 
+    if (!currentUser.isAdmin) {
+        console.error('Доступ запрещен: пользователь не админ');
+        return;
+    }
+
+    const text = DOM.taskInput.value.trim();
+    if (!text) {
+        console.warn('Пустой текст задачи');
+        return;
+    }
+
+    console.log('Создание новой задачи:', text);
+    
     const newItem = {
         text: text,
         color: "#e5e7eb",
@@ -330,20 +344,26 @@ function addItem() {
         subtasks: [],
         createdBy: currentUser.id
     };
+
+    console.log('Начало транзакции...');
     
     tasksRef.transaction((currentData) => {
-        currentData = currentData || {};
-        if (state.currentTab === 'tasks') {
-            currentData.tasks = currentData.tasks || [];
-            currentData.tasks.unshift(newItem);
-        } else {
-            currentData.events = currentData.events || [];
-            currentData.events.unshift(newItem);
-        }
+        console.log('Транзакция начата', currentData);
+        
+        currentData = currentData || { tasks: [], events: [], archived: [] };
+        const target = state.currentTab === 'tasks' ? 'tasks' : 'events';
+        currentData[target] = currentData[target] || [];
+        currentData[target].unshift(newItem);
+        
+        console.log('Новые данные для записи:', currentData);
         return currentData;
     }).then(() => {
+        console.log('Транзакция успешно завершена');
         DOM.taskInput.value = '';
-    }).catch(console.error);
+    }).catch((error) => {
+        console.error('Ошибка транзакции:', error);
+        alert('Ошибка сохранения: ' + error.message);
+    });
 }
 
 function saveEdit() {
@@ -794,6 +814,10 @@ function init() {
     }
     
     initEventListeners();
+    // В функции init() после подключения слушателя
+    tasksRef.on('value', (snapshot) => {
+        console.log('[Debug] Данные получены из Firebase:', snapshot.val());
+    });
     DOM.taskForm.style.display = currentUser.isAdmin ? 'flex' : 'none';
 }
 
