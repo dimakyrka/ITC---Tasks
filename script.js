@@ -160,9 +160,17 @@ function renderAll() {
     updateEmptyStates();
 }
 
+// ========== Исправленная функция renderTasks ==========
 function renderTasks() {
     console.log('[Render] Отрисовка задач:', state.tasks);
     DOM.tasksList.innerHTML = '';
+    
+    // Добавляем проверку типа
+    if (!Array.isArray(state.tasks)) {
+        console.error('state.tasks не является массивом:', state.tasks);
+        return;
+    }
+    
     state.tasks.forEach((task, index) => {
         const element = createTaskElement(task, index, 'tasks');
         DOM.tasksList.appendChild(element);
@@ -209,6 +217,7 @@ function renderArchive() {
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
     const taskEl = document.createElement('li');
+    taskEl.dataset.firebaseKey = task.firebaseKey;
     taskEl.className = 'task' + (!currentUser.isAdmin ? ' view-mode' : '');
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     
@@ -785,7 +794,7 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
-// ========== Обработчик изменений Firebase ==========
+// ========== Обновленная функция initFirebaseListeners ==========
 function initFirebaseListeners() {
     console.log('[Firebase] Инициализация слушателей');
     
@@ -793,16 +802,21 @@ function initFirebaseListeners() {
         const data = snapshot.val() || {};
         console.log('[Firebase] Получены новые данные:', data);
         
-        // Обновляем состояние
-        state.tasks = data.tasks || [];
-        state.events = data.events || [];
-        state.archived = data.archived || [];
+        // Преобразуем объекты в массивы
+        state.tasks = data.tasks ? Object.values(data.tasks) : [];
+        state.events = data.events ? Object.values(data.events) : [];
+        state.archived = data.archived ? Object.values(data.archived) : [];
         
-        // Форсируем обновление UI
-        requestAnimationFrame(() => {
-            renderAll();
-            console.log('[UI] Интерфейс обновлен');
-        });
+        // Добавляем ключи Firebase к задачам
+        if (data.tasks) {
+            state.tasks = Object.keys(data.tasks).map(key => ({
+                ...data.tasks[key],
+                firebaseKey: key
+            }));
+        }
+
+        console.log('[State] Обновленное состояние:', state);
+        requestAnimationFrame(renderAll);
     });
 }
 
