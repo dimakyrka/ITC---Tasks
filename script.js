@@ -1,3 +1,4 @@
+
 // Получаем токен из URL
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
@@ -9,7 +10,6 @@ if (!token) {
 
 // Конфиг Firebase (без apiKey!)
 const firebaseConfig = {
-    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
     authDomain: "itc-tasks.firebaseapp.com",
     databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
     projectId: "itc-tasks",
@@ -18,17 +18,21 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-firebase.auth().signInWithCustomToken(token)
-    .then(() => {
-        console.log("Успешный вход по токену");
-        loadTasks();  // Загружаем задачи
-    })
-    .catch((error) => {
-        console.error("Ошибка входа:", error);
-        alert("Ошибка авторизации. Обновите страницу или перезапустите бота.");
-    });
+firebase.initializeApp(firebaseConfig).then(() => {
+    // Firebase инициализирован, теперь можно использовать firebase.auth()
+    firebase.auth().signInWithCustomToken(token)
+        .then(() => {
+            console.log("Успешный вход по токену");
+            loadTasks();  // Загружаем задачи
+        })
+        .catch((error) => {
+            console.error("Ошибка входа:", error);
+            alert("Ошибка авторизации. Обновите страницу или перезапустите бота.");
+        });
+}).catch((error) => {
+    console.error("Ошибка инициализации Firebase:", error);
+    alert("Ошибка инициализации Firebase. Обновите страницу или перезапустите бота.");
+});
 
 // ========== Состояние приложения ==========
 const state = {
@@ -75,7 +79,7 @@ const DOM = {
     closeSubtasksTopBtn: document.getElementById('close-subtasks-top'),
     closeSubtasksBtn: document.getElementById('close-subtasks-btn'),
     taskForm: document.querySelector('.task-form'),
-    editAssignedTo: document.getElementById('edit-assigned-to') 
+    editAssignedTo: document.getElementById('edit-assigned-to')
 };
 
 // ========== Инициализация Firebase ==========
@@ -115,25 +119,25 @@ function renderEvents() {
 
 function renderArchive() {
     DOM.archiveList.innerHTML = '';
-    
+
     // Архив задач
     const archivedTasksHeader = document.createElement('h3');
     archivedTasksHeader.className = 'archive-header';
     archivedTasksHeader.textContent = 'Архив задач';
     DOM.archiveList.appendChild(archivedTasksHeader);
-    
+
     state.archived
         .filter(item => item.originalType === 'tasks')
         .forEach((item, index) => {
             DOM.archiveList.appendChild(createArchiveItem(item, index));
         });
-    
+
     // Архив мероприятий
     const archivedEventsHeader = document.createElement('h3');
     archivedEventsHeader.className = 'archive-header';
     archivedEventsHeader.textContent = 'Архив мероприятий';
     DOM.archiveList.appendChild(archivedEventsHeader);
-    
+
     state.archived
         .filter(item => item.originalType === 'events')
         .forEach((item, index) => {
@@ -143,15 +147,15 @@ function renderArchive() {
 
 // ========== Создание элементов DOM ==========
 function createTaskElement(item, index, type) {
-        const taskEl = document.createElement('li');
+    const taskEl = document.createElement('li');
     taskEl.className = 'task';
     taskEl.style.borderLeftColor = item.color || '#e5e7eb';
     taskEl.setAttribute('draggable', 'true');
     taskEl.dataset.index = index;
-    
+
     // Добавляем иконку и имя ответственного (если есть)
-    const assignedHtml = item.assignedTo 
-        ? `<div class="task-assigned-to">👤 ${item.assignedTo}</div>` 
+    const assignedHtml = item.assignedTo
+        ? `<div class="task-assigned-to">👤 ${item.assignedTo}</div>`
         : '';
 
     taskEl.innerHTML = `
@@ -172,30 +176,30 @@ function createTaskElement(item, index, type) {
             </button>
         </div>
     `;
-    
+
     // Обработчики событий
     taskEl.querySelector('.task-content').addEventListener('click', (e) => {
         if (!e.target.closest('.task-actions') && type === 'tasks') {
             openSubtasksModal(index);
         }
     });
-    
+
     taskEl.querySelector('.edit-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         openEditModal(index, type);
     });
-    
+
     taskEl.querySelector('.delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         openDeleteModal(index, type);
     });
-    
+
     // Drag and Drop
     taskEl.addEventListener('dragstart', handleDragStart);
     taskEl.addEventListener('dragover', handleDragOver);
     taskEl.addEventListener('drop', handleDrop);
     taskEl.addEventListener('dragend', handleDragEnd);
-    
+
     return taskEl;
 }
 
@@ -203,7 +207,7 @@ function createArchiveItem(item, index) {
     const archivedEl = document.createElement('li');
     archivedEl.className = 'task archived-item';
     archivedEl.style.borderLeftColor = item.color || '#e5e7eb';
-    
+
     archivedEl.innerHTML = `
         <div class="task-content">${item.text}</div>
         <div class="task-actions">
@@ -221,16 +225,16 @@ function createArchiveItem(item, index) {
             </button>
         </div>
     `;
-    
+
     archivedEl.querySelector('.restore-btn').addEventListener('click', () => {
         restoreFromArchive(index);
     });
-    
+
     archivedEl.querySelector('.delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         openDeleteModal(index, 'archived');
     });
-    
+
     return archivedEl;
 }
 
@@ -245,7 +249,7 @@ function addItem() {
         createdAt: Date.now(),
         subtasks: []
     };
-    
+
     tasksRef.transaction((currentData) => {
         currentData = currentData || {};
         if (state.currentTab === 'tasks') {
@@ -264,7 +268,7 @@ function addItem() {
 function saveEdit() {
     const newText = DOM.editInput.value.trim();
     const assignedTo = DOM.editAssignedTo.value.trim(); // Получаем выбранное имя из select
-    
+
     if (!newText || state.currentEditIndex === null) return;
 
     tasksRef.transaction((currentData) => {
@@ -284,7 +288,7 @@ function moveToArchive() {
     tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
 
-        const itemToArchive = { 
+        const itemToArchive = {
             ...currentData[state.currentEditType][state.currentEditIndex],
             archivedAt: Date.now(),
             originalType: state.currentEditType
@@ -343,19 +347,19 @@ function openSubtasksModal(index) {
         console.error('Invalid task index:', index);
         return;
     }
-    
+
     state.currentTaskWithSubtasks = index;
     const task = state.tasks[index];
     DOM.subtasksTitle.textContent = task.text;
     DOM.subtasksList.innerHTML = '';
     DOM.subtaskInput.value = '';
-    
+
     if (task.subtasks && task.subtasks.length > 0) {
         task.subtasks.forEach((subtask, subIndex) => {
             addSubtaskToDOM(subtask, subIndex);
         });
     }
-    
+
     DOM.subtasksModal.classList.add('active');
     DOM.subtaskInput.focus();
     document.addEventListener('keydown', handleEscKey);
@@ -378,12 +382,12 @@ function addSubtaskToDOM(subtask, index) {
             </svg>
         </button>
     `;
-    
+
     const checkbox = subtaskEl.querySelector('.subtask-checkbox');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('change', function () {
         const isChecked = this.checked;
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
-        
+
         tasksRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
@@ -395,13 +399,13 @@ function addSubtaskToDOM(subtask, index) {
             subtaskEl.querySelector('label').classList.toggle('completed');
         });
     });
-    
+
     // Добавляем обработчик удаления подзадачи
     const deleteBtn = subtaskEl.querySelector('.delete-subtask-btn');
     deleteBtn.addEventListener('click', () => {
         deleteSubtask(index);
     });
-    
+
     DOM.subtasksList.appendChild(subtaskEl);
 }
 
@@ -444,11 +448,11 @@ function addSubtask() {
     // Обновление в Firebase
     tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
-        
+
         if (!currentData.tasks[state.currentTaskWithSubtasks].subtasks) {
             currentData.tasks[state.currentTaskWithSubtasks].subtasks = [];
         }
-        
+
         currentData.tasks[state.currentTaskWithSubtasks].subtasks.push(newSubtask);
         return currentData;
     }).catch((error) => {
@@ -512,7 +516,7 @@ function updateEmptyStates() {
     DOM.emptyStates.tasks.classList.toggle('active', tasksEmpty);
     DOM.emptyStates.events.classList.toggle('active', eventsEmpty);
     DOM.emptyStates.archive.classList.toggle('active', archiveEmpty);
-    
+
     // Добавьте эту проверку
     if (!tasksEmpty) {
         DOM.emptyStates.tasks.style.display = 'none';
@@ -525,14 +529,14 @@ function updateEmptyStates() {
 function openEditModal(index, type) {
     state.currentEditIndex = index;
     state.currentEditType = type;
-    const item = type === 'tasks' ? state.tasks[index] : 
-                 type === 'events' ? state.events[index] : 
-                 state.archived[index];
-    
+    const item = type === 'tasks' ? state.tasks[index] :
+        type === 'events' ? state.events[index] :
+            state.archived[index];
+
     DOM.editInput.value = item.text;
     DOM.editAssignedTo.value = item.assignedTo || ''; // Автоматически выбираем текущее имя в select
     state.selectedColor = item.color || '#e5e7eb';
-    
+
     updateColorSelection();
     DOM.editModal.classList.add('active');
     DOM.editInput.focus();
@@ -569,20 +573,20 @@ function initEventListeners() {
         btn.addEventListener('click', () => {
             DOM.tabBtns.forEach(b => b.classList.remove('active'));
             DOM.tabContents.forEach(c => c.classList.remove('active'));
-            
+
             btn.classList.add('active');
             state.currentTab = btn.dataset.tab;
             document.getElementById(`${state.currentTab}-tab`).classList.add('active');
             DOM.taskForm.style.display = state.currentTab === 'archive' ? 'none' : 'flex';
         });
     });
-    
+
     // Добавление задач
     DOM.addBtn.addEventListener('click', addItem);
     DOM.taskInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addItem();
     });
-    
+
     // Редактирование
     DOM.saveEditBtn.addEventListener('click', saveEdit);
     DOM.editInput.addEventListener('keypress', (e) => {
@@ -592,7 +596,7 @@ function initEventListeners() {
         DOM.editModal.classList.remove('active');
     });
     DOM.archiveBtn.addEventListener('click', moveToArchive);
-    
+
     // Цвета
     DOM.colorOptions.forEach(option => {
         option.addEventListener('click', () => {
@@ -600,13 +604,13 @@ function initEventListeners() {
             updateColorSelection();
         });
     });
-    
+
     // Удаление
     DOM.confirmDeleteBtn.addEventListener('click', deleteItem);
     DOM.cancelDeleteBtn.addEventListener('click', () => {
         DOM.deleteModal.classList.remove('active');
     });
-    
+
     // Подзадачи
     DOM.addSubtaskBtn.addEventListener('click', addSubtask);
     DOM.subtaskInput.addEventListener('keypress', (e) => {
@@ -622,14 +626,14 @@ function initEventListeners() {
     window.addEventListener('click', (e) => {
         if (e.target === DOM.subtasksModal) closeSubtasksModal();
     });
-    
+
     document.addEventListener('keydown', handleEscKey);
 }
 
 // ========== Инициализация приложения ==========
 function init() {
     initializeDataStructure();
-    
+
     // Загрузка данных из Firebase
     tasksRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
@@ -638,10 +642,11 @@ function init() {
         state.archived = data.archived || [];
         renderAll();
     });
-    
+
     initEventListeners();
     DOM.taskForm.style.display = 'flex';
 }
 
 // Запуск приложения
 init();
+
