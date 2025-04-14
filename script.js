@@ -759,6 +759,7 @@ function initEventListeners() {
 
 // ========== Инициализация приложения ==========
 function init() {
+    console.log('Инициализация приложения. Текущий пользователь:', currentUser);
     initializeDataStructure();
     
     // Получаем ID пользователя из URL
@@ -766,6 +767,9 @@ function init() {
     const userId = urlParams.get('user_id');
     
     if (userId) {
+        console.log('Получен user_id из URL:', userId);
+        checkUserPermissions(userId).then(() => {
+            console.log('Проверка прав завершена:', currentUser);
         checkUserPermissions(userId).then(() => {
             setupUIForUserRole();
             
