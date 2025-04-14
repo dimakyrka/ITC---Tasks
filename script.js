@@ -146,11 +146,27 @@ function initializeDataStructure() {
 }
 
 // ========== Основные функции рендеринга ==========
+// ========== Основные функции рендеринга ==========
 function renderAll() {
+    console.log('[Render] Обновление интерфейса', {
+        tasks: state.tasks,
+        events: state.events,
+        archived: state.archived
+    });
+    
     renderTasks();
     renderEvents();
     renderArchive();
     updateEmptyStates();
+}
+
+function renderTasks() {
+    console.log('[Render] Отрисовка задач:', state.tasks);
+    DOM.tasksList.innerHTML = '';
+    state.tasks.forEach((task, index) => {
+        const element = createTaskElement(task, index, 'tasks');
+        DOM.tasksList.appendChild(element);
+    });
 }
 
 function renderTasks() {
@@ -774,34 +790,45 @@ function initEventListeners() {
     document.addEventListener('keydown', handleEscKey);
 }
 
-// ========== Инициализация приложения ==========
-function init() {
-    console.log('[Init] Начало инициализации');
+// ========== Обработчик изменений Firebase ==========
+function initFirebaseListeners() {
+    console.log('[Firebase] Инициализация слушателей');
     
-    try {
-        initializeDataStructure();
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
+    tasksRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        console.log('[Firebase] Получены новые данные:', data);
+        
+        // Обновляем состояние
+        state.tasks = data.tasks || [];
+        state.events = data.events || [];
+        state.archived = data.archived || [];
+        
+        // Форсируем обновление UI
+        requestAnimationFrame(() => {
+            renderAll();
+            console.log('[UI] Интерфейс обновлен');
+        });
+    });
+}
 
-        if (userId) {
-            console.log('[Init] User ID из URL:', userId);
-            checkUserPermissions(userId)
-                .then(() => {
-                    console.log('[Auth] Пользователь:', currentUser);
-                    setupUIForUserRole();
-                    initEventListeners(); // Важно: инициализация обработчиков после аутентификации
-                })
-                .catch(error => {
-                    console.error('[Auth] Ошибка:', error);
-                });
-        } else {
-            console.log('[Init] Гостевой режим');
+/// ========== Модифицированная функция init() ==========
+function init() {
+    initializeDataStructure();
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+
+    if (userId) {
+        checkUserPermissions(userId).then(() => {
             setupUIForUserRole();
-            initEventListeners(); // Инициализация обработчиков для гостей
-        }
-    } catch (error) {
-        console.error('[Init] Критическая ошибка:', error);
+            initFirebaseListeners(); // Добавляем слушателей после авторизации
+        });
+    } else {
+        setupUIForUserRole();
+        initFirebaseListeners(); // Слушатели для гостей
     }
+    
+    initEventListeners();
+    console.log('[Init] Инициализация завершена');
 }
 
 // Запуск приложения после полной загрузки DOM
