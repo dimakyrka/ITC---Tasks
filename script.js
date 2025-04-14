@@ -1,4 +1,8 @@
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
 // Получаем токен из URL
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
@@ -10,7 +14,7 @@ if (!token) {
 
 // Конфиг Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As", // ОБЯЗАТЕЛЬНО ДОБАВЬТЕ СВОЙ КЛЮЧ API
+    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As", // Обязательно добавьте свой ключ API
     authDomain: "itc-tasks.firebaseapp.com",
     databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
     projectId: "itc-tasks",
@@ -19,30 +23,36 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
-let tasksRef; // Объявляем tasksRef здесь, чтобы быть в области видимости
+// Инициализация Firebase
+async function initializeFirebase() {
+    try {
+        const app = initializeApp(firebaseConfig);
+        console.log("Firebase инициализирован");
 
-// Инициализация Firebase и refs
-try {
-    const app = firebase.initializeApp(firebaseConfig);
-    console.log("Firebase инициализирован");
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const tasksRef = ref(db, 'tasksData');
+        window.tasksRef = tasksRef; // Делаем tasksRef глобальной (не рекомендуется, но для простоты)
 
-    const db = firebase.database();
-    tasksRef = db.ref('tasksData');
+        // Вход по токену
+        signInWithCustomToken(auth, token)
+            .then(() => {
+                console.log("Успешный вход по токену");
+                loadTasks();
+            })
+            .catch((error) => {
+                console.error("Ошибка входа:", error);
+                alert("Ошибка авторизации. Проверьте токен или перезапустите бота.");
+            });
 
-    // Вход по токену
-    firebase.auth().signInWithCustomToken(token)
-        .then(() => {
-            console.log("Успешный вход по токену");
-            loadTasks();
-        })
-        .catch((error) => {
-            console.error("Ошибка входа:", error);
-            alert("Ошибка авторизации. Проверьте токен или перезапустите бота.");
-        });
-} catch (error) {
-    console.error("Ошибка инициализации Firebase:", error);
-    alert("Критическая ошибка Firebase. Обновите страницу.");
+
+    } catch (error) {
+        console.error("Ошибка инициализации Firebase:", error);
+        alert("Критическая ошибка Firebase. Обновите страницу.");
+    }
 }
+
+initializeFirebase(); // Запускаем инициализацию Firebase
 
 // ========== Состояние приложения ==========
 const state = {
@@ -94,9 +104,13 @@ const DOM = {
 
 // ========== Инициализация Firebase ==========
 function initializeDataStructure() {
-    tasksRef.once('value').then((snapshot) => {
+    if (!window.tasksRef) {
+        console.warn("tasksRef еще не инициализирован!");
+        return;
+    }
+    get(window.tasksRef).then((snapshot) => { // get вместо once('value')
         if (!snapshot.exists()) {
-            tasksRef.set({
+            set(window.tasksRef, { // set вместо set
                 tasks: [],
                 events: [],
                 archived: []
@@ -260,7 +274,7 @@ function addItem() {
         subtasks: []
     };
 
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         currentData = currentData || {};
         if (state.currentTab === 'tasks') {
             currentData.tasks = currentData.tasks || [];
@@ -281,7 +295,7 @@ function saveEdit() {
 
     if (!newText || state.currentEditIndex === null) return;
 
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         const item = currentData[state.currentEditType][state.currentEditIndex];
         item.text = newText;
         item.color = state.selectedColor;
@@ -295,7 +309,7 @@ function saveEdit() {
 function moveToArchive() {
     if (state.currentEditIndex === null || !state.currentEditType) return;
 
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
 
         const itemToArchive = {
@@ -317,7 +331,7 @@ function moveToArchive() {
 }
 
 function restoreFromArchive(index) {
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (!currentData?.archived || index >= currentData.archived.length) {
             return currentData;
         }
@@ -336,7 +350,7 @@ function restoreFromArchive(index) {
 function deleteItem() {
     if (state.currentDeleteIndex === null) return;
 
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (state.currentEditType === 'tasks') {
             currentData.tasks.splice(state.currentDeleteIndex, 1);
         } else if (state.currentEditType === 'events') {
@@ -398,7 +412,7 @@ function addSubtaskToDOM(subtask, index) {
         const isChecked = this.checked;
         subtaskEl.querySelector('label').classList.toggle('completed', isChecked);
 
-        tasksRef.transaction((currentData) => {
+        window.tasksRef.transaction((currentData) => {
             if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks?.[index]) {
                 currentData.tasks[state.currentTaskWithSubtasks].subtasks[index].completed = isChecked;
             }
@@ -420,7 +434,7 @@ function addSubtaskToDOM(subtask, index) {
 }
 
 function deleteSubtask(index) {
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (currentData && currentData.tasks[state.currentTaskWithSubtasks]?.subtasks) {
             currentData.tasks[state.currentTaskWithSubtasks].subtasks.splice(index, 1);
         }
@@ -456,7 +470,7 @@ function addSubtask() {
     DOM.subtaskInput.focus();
 
     // Обновление в Firebase
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (!currentData) currentData = { tasks: [], events: [], archived: [] };
 
         if (!currentData.tasks[state.currentTaskWithSubtasks].subtasks) {
@@ -503,7 +517,7 @@ function handleDragEnd() {
 }
 
 function swapItems(fromIndex, toIndex) {
-    tasksRef.transaction((currentData) => {
+    window.tasksRef.transaction((currentData) => {
         if (state.currentTab === 'tasks') {
             const temp = currentData.tasks[fromIndex];
             currentData.tasks[fromIndex] = currentData.tasks[toIndex];
@@ -645,7 +659,11 @@ function init() {
     initializeDataStructure();
 
     // Загрузка данных из Firebase
-    tasksRef.on('value', (snapshot) => {
+    if (!window.tasksRef) {
+        console.warn("tasksRef еще не инициализирован!");
+        return;
+    }
+    onValue(window.tasksRef, (snapshot) => {
         const data = snapshot.val() || {};
         state.tasks = data.tasks || [];
         state.events = data.events || [];
@@ -657,5 +675,4 @@ function init() {
     DOM.taskForm.style.display = 'flex';
 }
 
-// Запуск приложения
-init();
+// Вызов init перенесен в функцию initializeFirebase
