@@ -169,12 +169,7 @@ function renderTasks() {
     });
 }
 
-function renderTasks() {
-    DOM.tasksList.innerHTML = '';
-    state.tasks.forEach((task, index) => {
-        DOM.tasksList.appendChild(createTaskElement(task, index, 'tasks'));
-    });
-}
+
 
 function renderEvents() {
     DOM.eventsList.innerHTML = '';
