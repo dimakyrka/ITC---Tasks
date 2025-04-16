@@ -9,6 +9,15 @@ const firebaseConfig = {
     appId: "1:736776837496:web:27341fe39226d1b8d0108d"
 };
 
+const USERNAME_TO_ID = {
+    "Пчелыч": "627435430",  # Замените на реальные Telegram ID
+    "Булка": "873201338",
+    "Кролик": "7819788488",
+    "Пляцок": None,
+    "Митяй": "647523973",
+    "Другое": None
+}
+
 // ========== Инициализация приложения ==========
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
@@ -319,18 +328,34 @@ function saveEdit() {
 
 // Новая функция для отправки уведомления о назначении
 function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
+    if (!state.botToken) {
+        console.error('Bot token not available');
+        return;
+    }
+
     const task = taskType === 'tasks' ? state.tasks[taskIndex] : state.events[taskIndex];
+    const assignedToId = USERNAME_TO_ID[assignedTo];
     
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    if (!assignedToId) {
+        console.log('No Telegram ID for', assignedTo);
+        return;
+    }
+
+    fetch(`https://api.telegram.org/bot${state.botToken}/sendMessage`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            chat_id: USERNAME_TO_ID[assignedTo],
-            text: `🔔 Вам назначена новая задача:\n\n"${task.text}"\n\nНазначил: ${task.assignedBy || "Неизвестно"}`,
+            chat_id: assignedToId,
+            text: `🔔 Вам назначена новая ${taskType === 'tasks' ? 'задача' : 'мероприятие'}:\n\n"${task.text}"\n\nНазначил: ${task.assignedBy || "Неизвестно"}`,
             parse_mode: 'Markdown'
         })
+    }).then(response => {
+        if (!response.ok) {
+            console.error('Failed to send notification:', response.status);
+        }
+        return response.json();
     }).catch(error => console.error('Error sending notification:', error));
 }
 
