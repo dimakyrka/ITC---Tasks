@@ -339,6 +339,9 @@ function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
         return;
     }
 
+    const taskTypeText = taskType === 'tasks' ? 'задача' : 'мероприятие';
+    const notificationText = `🔔 У тебя нов${taskType === 'tasks' ? 'ая' : 'ое'} ${taskTypeText}:\n\n}`;
+
     fetch(`https://api.telegram.org/bot${state.botToken}/sendMessage`, {
         method: 'POST',
         headers: {
@@ -346,7 +349,7 @@ function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
         },
         body: JSON.stringify({
             chat_id: assignedToId,
-            text: `🔔 Тебе назначена новая ${taskType === 'tasks' ? 'задача' : 'мероприятие'}:\n\n"${task.text}"}`,
+            text: notificationText,
             parse_mode: 'Markdown'
         })
     }).then(response => {
