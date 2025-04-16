@@ -1,12 +1,12 @@
 // Firebase Config
 const firebaseConfig = {
-    apiKey: "AIzaSyDgo9-fdGZ44YCIVrA99y1JjPnETnpf6As",
-    authDomain: "itc-tasks.firebaseapp.com",
-    databaseURL: "https://itc-tasks-default-rtdb.firebaseio.com",
-    projectId: "itc-tasks",
-    storageBucket: "itc-tasks.appspot.com",
-    messagingSenderId: "736776837496",
-    appId: "1:736776837496:web:27341fe39226d1b8d0108d"
+    apiKey: "AIzaSyDgo9-AIzaSyA76t3AwSVEoDuANZRIwDA2cLVL36VOUvE",
+    authDomain: "itc-tasks-2afc6.firebaseapp.com",
+    databaseURL: "https://itc-tasks-2afc6-default-rtdb.firebaseio.com",
+    projectId: "itc-tasks-2afc6",
+    storageBucket: "itc-tasks-2afc6.firebasestorage.app",
+    messagingSenderId: "881334437335",
+    appId: "1:881334437335:web:4ce9d1dfb05dd622ddf792"
 };
 
 const USERNAME_TO_ID = {
