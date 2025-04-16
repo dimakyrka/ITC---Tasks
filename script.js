@@ -289,7 +289,7 @@ function addItem() {
 
 function saveEdit() {
     const newText = DOM.editInput.value.trim();
-    const assignedTo = DOM.editAssignedTo.value.trim(); // Получаем выбранное имя из select
+    const assignedTo = DOM.editAssignedTo.value.trim();
     
     if (!newText || state.currentEditIndex === null) return;
 
@@ -297,12 +297,43 @@ function saveEdit() {
         const item = currentData[state.currentEditType][state.currentEditIndex];
         item.text = newText;
         item.color = state.selectedColor;
-        item.assignedTo = assignedTo; // Сохраняем имя (пустая строка, если "Не назначено")
+        item.assignedTo = assignedTo;
+        
+        // Добавляем информацию о том, кто назначил задачу
+        if (assignedTo && assignedTo !== "Не назначено") {
+            item.assignedBy = state.currentUser; // ID пользователя, который назначил задачу
+            item.assignedAt = Date.now();
+        }
+        
         return currentData;
     }).then(() => {
         DOM.editModal.classList.remove('active');
+        
+        // Если задача назначена на кого-то (кроме "Не назначено" и "Другое")
+        if (assignedTo && assignedTo !== "Не назначено" && assignedTo !== "Другое") {
+            // Отправляем информацию о назначении на сервер
+            sendAssignmentNotification(state.currentEditType, state.currentEditIndex, assignedTo);
+        }
     }).catch(console.error);
 }
+
+// Новая функция для отправки уведомления о назначении
+function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
+    const task = taskType === 'tasks' ? state.tasks[taskIndex] : state.events[taskIndex];
+    
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: USERNAME_TO_ID[assignedTo],
+            text: `🔔 Вам назначена новая задача:\n\n"${task.text}"\n\nНазначил: ${task.assignedBy || "Неизвестно"}`,
+            parse_mode: 'Markdown'
+        })
+    }).catch(error => console.error('Error sending notification:', error));
+}
+
 
 function moveToArchive() {
     if (state.currentEditIndex === null || !state.currentEditType) return;
