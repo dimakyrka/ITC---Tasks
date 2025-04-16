@@ -687,10 +687,16 @@ function initEventListeners() {
 // Модифицируем функцию init()
 async function init() {
     initializeDataStructure();
-    
-    // Получаем userId из URL (будет передаваться из Telegram)
+    // Получаем параметры из URL
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
+    state.botToken = urlParams.get('botToken'); // Сохраняем токен в состоянии
+    
+    if (!userId || !state.botToken) {
+        alert('Пожалуйста, используйте бота для доступа к приложению.');
+        return;
+    }
+   
     
     if (userId) {
         const isAuthenticated = await checkUserAuth(userId);
