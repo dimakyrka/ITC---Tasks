@@ -346,7 +346,7 @@ function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
         },
         body: JSON.stringify({
             chat_id: assignedToId,
-            text: `🔔 Вам назначена новая ${taskType === 'tasks' ? 'задача' : 'мероприятие'}:\n\n"${task.text}"\n\nНазначил: ${task.assignedBy || "Неизвестно"}`,
+            text: `🔔 Тебе назначена новая ${taskType === 'tasks' ? 'задача' : 'мероприятие'}:\n\n"${task.text}"}`,
             parse_mode: 'Markdown'
         })
     }).then(response => {
