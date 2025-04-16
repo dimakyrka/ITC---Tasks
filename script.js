@@ -13,6 +13,7 @@ const USERNAME_TO_ID = {
     "Пчелыч": "627435430", 
     "Булка": "873201338",
     "Кролик": "7819788488",
+    "Пляцок": "1797007192",
     "Митяй": "647523973"
 }
 
@@ -340,7 +341,7 @@ function sendAssignmentNotification(taskType, taskIndex, assignedTo) {
     }
 
     const taskTypeText = taskType === 'tasks' ? 'задача' : 'мероприятие';
-    const notificationText = `🔔 У тебя нов${taskType === 'tasks' ? 'ая' : 'ое'} ${taskTypeText}:\n\n}`;
+    const notificationText = `🔔 У тебя нов${taskType === 'tasks' ? 'ая' : 'ое'} ${taskTypeText}:\n\n"${task.text}"`;
 
     fetch(`https://api.telegram.org/bot${state.botToken}/sendMessage`, {
         method: 'POST',
